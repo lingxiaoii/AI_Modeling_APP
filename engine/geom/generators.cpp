@@ -174,10 +174,11 @@ IndexedMesh sphere(const SphereOptions& options) {
     // - 南极扇：南 + 最后一条纬线相邻点（外侧 CCW：南, j, j+1）。
     for (std::uint32_t j = 0; j < s; ++j) {
         const std::uint32_t j1 = (j + 1) % s;
-        // 北扇：从北看向赤道，j 增方向绕 Y 逆时针 → (north, j1, j)。
+        // 北扇：北极法线须朝 +Y（球外）。叉积 (P_j-north)×(P_j1-north) 的
+        // y = r²·sin(θ_{j1}-θ_j) > 0 → 三角形 (north, j, j1) 朝外。
         m.indices.push_back(north);
-        m.indices.push_back(ring_base + j1);
         m.indices.push_back(ring_base + j);
+        m.indices.push_back(ring_base + j1);
     }
 
     const std::uint32_t mid_rings = options.stacks - 1;  // 中间纬线数
