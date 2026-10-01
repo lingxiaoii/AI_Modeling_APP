@@ -1,0 +1,22 @@
+# 凭据与密钥（D-049/D-052 铁律）
+.git-credentials
+*.token
+*.key
+*.pem
+
+# 构建产物
+build/
+cmake-build-*/
+*.o
+*.a
+*.so
+*.apk
+*.log
+
+# 工具运行数据（非项目源码）
+.backup/
+.operit/
+
+# 临时探针
+/tmp/v01/
+tmp-v01/
