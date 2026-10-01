@@ -6,6 +6,8 @@
 
 #include <android/log.h>
 #include <android/native_window.h>
+// ANativeWindow_fromSurface 声明在此头（native_window.h 只有 ANativeWindow 类型）。
+#include <android/native_window_jni.h>
 
 #include <cstring>
 #include <string>
@@ -21,6 +23,12 @@ JavaVM* g_vm = nullptr;
 // 全局引用缓存 Kotlin 事件接收对象（Service onCreate 注册一次）。
 jobject g_sink_ref = nullptr;
 jmethodID g_sink_on_event = nullptr;
+// 最新 surface 对应的 ANativeWindow：M2c 渲染模块创建 bgfx platform data 时会取用。
+// 当前阶段（M2c 前）渲染模块未接入，窗口无人消费：surfaceDestroyed 时
+// 必须显式释放，否则跨 surface 生命周期泄漏原生资源。
+// 【M2c 接入后改动】把 g_current_window 转交渲染模块持有，release 改由渲染模块
+// 在 bgfx 销毁后负责，本文件只负责 created/destroyed 的通知，不再 release。
+ANativeWindow* g_current_window = nullptr;
 
 std::string json_escape(const std::string& in) {
     std::string out;
@@ -139,17 +147,6 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_pocketmodeler_app_NativeBridge_nativeStopModeler(JNIEnv*, jclass) {
     pm::platform::host().stop();
 }
-
-namespace {
-
-// 最新 surface 对应的 ANativeWindow：M2c 渲染模块创建 bgfx platform data 时会取用。
-// 当前阶段（M2c 前）渲染模块未接入，窗口无人消费：surfaceDestroyed 与库卸载时
-// 必须显式释放，否则跨 surface 生命周期泄漏原生资源。
-// 【M2c 接入后改动】把 g_current_window 转交渲染模块持有，release 改由渲染模块
-// 在 bgfx 销毁后负责，本文件只负责 created/destroyed 的通知，不再 release。
-ANativeWindow* g_current_window = nullptr;
-
-}  // namespace
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_pocketmodeler_app_NativeBridge_nativeOnSurfaceCreated(JNIEnv* env, jclass, jobject surface,
