@@ -18,7 +18,7 @@ TEST_CASE("assert registry registers known types with correct params") {
     REQUIRE(reg.register_assert(pm::scene::assert_type::kNoIntersection, {}, {}, error));
     REQUIRE(reg.register_assert(pm::scene::assert_type::kNoFloating, {}, {}, error));
     REQUIRE(reg.register_assert(
-        pm::scene::assert_type::kBboxWithin, {"table"}, {0.9f}, error));
+        pm::scene::assert_type::kBboxWithin, {"table", "max_extent"}, {0.9f, 10.0f}, error));
     REQUIRE(reg.register_assert(
         pm::scene::assert_type::kObjectCount, {"max"}, {20.0f}, error));
     REQUIRE(reg.register_assert(

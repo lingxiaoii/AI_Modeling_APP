@@ -33,11 +33,11 @@ bool overlap_depth(const core::Aabb& a, const core::Aabb& b, float& depth, int& 
     return true;
 }
 
-// XZ 投影下方是否有支撑：b.min_y < a.min_y（支撑物顶面低于浮空物底面）且
-// XZ 有交叠（AABB 投影相交）。
+// XZ 投影下方是否有支撑：支撑物顶面达到浮空物底面附近（允许 threshold 间隙
+// 容差）且 XZ 投影交叠。明显低于底面（够不着）→ 无支撑。
 bool has_support_below(const core::Aabb& a, const core::Aabb& b, float threshold) {
-    if (b.max.y > a.min.y - threshold) {
-        return false;  // 支撑物顶面没低到浮空物下方
+    if (b.max.y < a.min.y - threshold) {
+        return false;  // 支撑物顶面明显低于浮空物底面（够不着）
     }
     const bool x_overlap = a.min.x < b.max.x && a.max.x > b.min.x;
     const bool z_overlap = a.min.z < b.max.z && a.max.z > b.min.z;
@@ -115,7 +115,9 @@ ValidationReport validate_scene(const std::vector<SceneObject>& objects,
     }
     if (!extents.empty()) {
         std::sort(extents.begin(), extents.end());
-        const float median = extents[extents.size() / 2];  // 上中位数（简单）
+        // 下中位数（偶数取低索引）：场景以"典型物体尺寸"为基准更合理，
+        // 上中位数会让巨物+常规物混合时把巨物当基准（测试实证 ratio=1 不报）。
+        const float median = extents[(extents.size() - 1) / 2];
         if (median > 0.0f) {
             for (const SceneObject& o : objects) {
                 if (!o.bounds.valid()) {

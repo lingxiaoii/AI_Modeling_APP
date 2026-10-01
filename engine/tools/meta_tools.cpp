@@ -49,7 +49,7 @@ BatchReport execute_batch(const json& ops, const BatchExecutor& executor) {
         } else if (executor) {
             const ToolResult res = executor(tool, args);
             r.ok = res.ok;
-            r.error = res.error_message();
+            r.error = res.error_code();  // 机器可读 code（message 人类可读，不进协议）
             r.data = res.data;
             res.ok ? ++report.ok : ++report.failed;
         } else {

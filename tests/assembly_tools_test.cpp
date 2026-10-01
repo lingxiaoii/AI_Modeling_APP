@@ -48,7 +48,8 @@ TEST_CASE("attach roof to wall top aligns faces within 1mm") {
     REQUIRE(pm::tools::attach_object(wall, roof, 0 /*top*/, 0.0f, pm::core::Vec3(0, 0, 0), pos, error));
 
     // 屋顶底面 y = 3（贴墙顶面），中心 x/z 对齐 0。
-    CHECK(std::fabs(pos.y + 0.25f - 3.0f) < 1e-3f);
+    // 正确贴合：roof 本地底面 y=0 → position.y = 3。
+    CHECK(std::fabs(pos.y - 3.0f) < 1e-3f);
     CHECK(std::fabs(pos.x) < 1e-3f);
     CHECK(std::fabs(pos.z) < 1e-3f);
 }
@@ -81,8 +82,8 @@ TEST_CASE("attach offset pushes along face normal") {
     pm::core::Vec3 pos;
     std::string error;
     REQUIRE(pm::tools::attach_object(wall, roof, 0 /*top*/, 0.0f, pm::core::Vec3(0.0f, 0.5f, 0.0f), pos, error));
-    // offset=0.5 沿 +Y 附加：屋顶底面贴墙顶面后整体上移 0.5。
-    CHECK(std::fabs(pos.y - 0.5f) < 1e-3f);
+    // offset=0.5 沿 +Y 附加：屋顶底面贴墙顶面（y=1）后整体上移 0.5 → pos.y=1.5。
+    CHECK(std::fabs(pos.y - 1.5f) < 1e-3f);
 }
 
 TEST_CASE("attach rejects invalid face") {

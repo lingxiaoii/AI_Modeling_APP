@@ -29,9 +29,9 @@ TEST_CASE("capture cameras derive from unit cube bounds") {
     CHECK(cam.ortho_height == doctest::Approx(1.2f).epsilon(1e-3f));
 
     // 透视：机位在 bbox 对角线上方 45°（眼位 y > 中心 y，x/z 偏移>0）。
-    // 从 persp_view 逆推眼位（view 的平移列取负）。
-    const pm::core::Vec3 eye(
-        -(cam.persp_view[3][0]), -(cam.persp_view[3][1]), -(cam.persp_view[3][2]));
+    // 从 persp_view 逆推眼位：view = lookAt(eye,...)，其逆矩阵第 4 列即眼位。
+    const pm::core::Mat4 inv = glm::inverse(cam.persp_view);
+    const pm::core::Vec3 eye(inv[3][0], inv[3][1], inv[3][2]);
     CHECK(eye.y > 0.0f);
     CHECK(eye.x > 0.0f);
     CHECK(eye.z > 0.0f);

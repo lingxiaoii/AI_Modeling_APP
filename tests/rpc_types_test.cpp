@@ -14,7 +14,9 @@ using pm::mcp::json;
 TEST_CASE("is_request and is_notification distinguish by id presence") {
     CHECK(pm::mcp::is_request(json{{"jsonrpc", "2.0"}, {"method", "ping"}, {"id", 1}}));
     CHECK(pm::mcp::is_notification(json{{"jsonrpc", "2.0"}, {"method", "notifications/initialized"}}));
-    CHECK(pm::mcp::is_request(json{{"jsonrpc", "2.0"}, {"method", "ping"}, {"id", nullptr}}) == false);
+    // JSON-RPC 2.0：id 字段存在（含 null）即请求；无 id 字段即通知。
+    CHECK(pm::mcp::is_request(json{{"jsonrpc", "2.0"}, {"method", "ping"}, {"id", nullptr}}) == true);
+    CHECK(pm::mcp::is_notification(json{{"jsonrpc", "2.0"}, {"method", "ping"}, {"id", nullptr}}) == false);
     CHECK(pm::mcp::is_request(json{{"foo", 1}}) == false);
     CHECK(pm::mcp::is_notification(json{{"foo", 1}}) == false);
 }

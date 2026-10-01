@@ -76,20 +76,20 @@ bool attach_object(const AssemblyObject& parent, const AssemblyObject& child,
     parent_face_center += n * (psize.x * std::fabs(n.x) + psize.y * std::fabs(n.y) +
                                psize.z * std::fabs(n.z)) * 0.5f;
 
-    // child 朝该面方向的面中心（反法线侧）。
-    const core::Vec3 csize = cb.size();
-    const core::Vec3 child_face_center = cb.center() - n * (csize.x * std::fabs(n.x) +
+    // child 朝该面方向的面中心（反法线侧）：用 child 本地 AABB 计算，
+    // child.position 是待求量，绝不参与贴合公式（否则位置被重复计入）。
+    const core::Aabb& cl = child.local_bounds;
+    const core::Vec3 csize = cl.size();
+    const core::Vec3 child_face_center = cl.center() - n * (csize.x * std::fabs(n.x) +
                                                              csize.y * std::fabs(n.y) +
                                                              csize.z * std::fabs(n.z)) * 0.5f;
 
-    // child.position = parent_face_center - child_face_center + offset*|n|。
-    // 由于 cb.center 含 child.position，需从"贴合后的 child center"反推 position。
-    // child_face_center 是当前（未移动）child 的面中心：cb.center() - n*half。
+    // child.position = 目标 child 面中心 - 本地面中心。
     // 目标 child 面中心 = parent_face_center + offset（offset 沿法线附加）。
     const core::Vec3 target_child_face = parent_face_center + n * (offset.x * std::fabs(n.x) +
                                                                    offset.y * std::fabs(n.y) +
                                                                    offset.z * std::fabs(n.z));
-    out_position = target_child_face - (cb.center() - child_face_center);
+    out_position = target_child_face - child_face_center;
     return true;
 }
 
@@ -104,10 +104,10 @@ bool snap_fit(const AssemblyObject& a, const AssemblyObject& b, SnapMode mode,
 
     if (mode == SnapMode::kStack) {
         // 等价 attach a.top：b 底面贴 a 顶面。
-        AssemblyObject child = b;
-        child.position = core::Vec3(0.0f, 0.0f, 0.0f);  // 用相对坐标计算
+        // attach 已用 child.local_bounds 计算面中心，child.position 只作为待求输出，
+        // 因此这里直接传原始 b（position 由 attach 计算覆盖）。
         core::Vec3 pos;
-        if (!attach_object(a, child, 0, 0.0f, core::Vec3(0.0f, 0.0f, 0.0f), pos, error)) {
+        if (!attach_object(a, b, 0, 0.0f, core::Vec3(0.0f, 0.0f, 0.0f), pos, error)) {
             return false;
         }
         out_position = pos;

@@ -9,7 +9,8 @@ constexpr const char* kJsonRpc = "2.0";
 }
 
 bool is_request(const json& raw) {
-    // 合法请求是对象且含 method；通知 = 请求但无 id（缺 id 即通知，不再回包）。
+    // 合法请求是对象且含 method；通知 = 请求但无 id 字段（id:null 仍算请求，须回包）。
+    // 与 JSON-RPC 2.0 一致：id 字段存在（含 null）即请求；无 id 字段即通知。
     return raw.is_object() && raw.contains("method") && raw["method"].is_string();
 }
 

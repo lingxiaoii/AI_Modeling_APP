@@ -17,6 +17,13 @@ constexpr float kFar = 1000.0f;
 }
 
 Viewport::Viewport(const pm::platform::IRenderSurface* surface) : surface_(surface) {
+    // 构造时同步 surface 初始状态：表面可能已有效（如测试传入 800×600 的 TestSurface），
+    // 不初始化会让 frame() 因 surface_valid=false 拒绝渲染（测试实证）。
+    if (surface_ != nullptr) {
+        status_.surface_valid = surface_->valid();
+        status_.width = surface_->width();
+        status_.height = surface_->height();
+    }
     update_camera();
 }
 

@@ -147,29 +147,47 @@ IndexedMesh sphere(const SphereOptions& options) {
 
     const float r = options.radius;
     // 顶点：stacks+1 条纬线（含两极），每条 slices 个点。
-    for (std::uint32_t i = 0; i <= options.stacks; ++i) {
+    // 极点（phi=0/π）ring_radius=0，slices 个点全部重合 → 非流形（每极 s 条只被
+    // 单三角形引用的边，边界 s×2）。修复：极点只放 1 个顶点，周围三角形引用它。
+    const std::uint32_t s = options.slices;
+    const std::uint32_t north = static_cast<std::uint32_t>(m.positions.size());
+    m.positions.push_back(core::Vec3(0.0f, r, 0.0f));  // 北极（phi=0）
+
+    const std::uint32_t ring_base = static_cast<std::uint32_t>(m.positions.size());
+    for (std::uint32_t i = 1; i < options.stacks; ++i) {  // 中间纬线（不含两极）
         const float phi = core::kPi * static_cast<float>(i) / static_cast<float>(options.stacks);
         const float y = r * std::cos(phi);
         const float ring_radius = r * std::sin(phi);
-        for (std::uint32_t j = 0; j < options.slices; ++j) {
+        for (std::uint32_t j = 0; j < s; ++j) {
             const float theta =
-                2.0f * core::kPi * static_cast<float>(j) / static_cast<float>(options.slices);
+                2.0f * core::kPi * static_cast<float>(j) / static_cast<float>(s);
             m.positions.push_back(
                 core::Vec3(ring_radius * std::cos(theta), y, ring_radius * std::sin(theta)));
         }
     }
+    const std::uint32_t south = static_cast<std::uint32_t>(m.positions.size());
+    m.positions.push_back(core::Vec3(0.0f, -r, 0.0f));  // 南极（phi=π）
 
-    const std::uint32_t s = options.slices;
-    // 除两极外的四边形带。
-    for (std::uint32_t i = 0; i < options.stacks; ++i) {
+    // 三角形：
+    // - 北极扇：北 + 第 1 条纬线相邻点（外侧 CCW：北, j+1, j）。
+    // - 中间带：第 i 条与第 i+1 条纬线间四边形（绕序与旧实现一致）。
+    // - 南极扇：南 + 最后一条纬线相邻点（外侧 CCW：南, j, j+1）。
+    for (std::uint32_t j = 0; j < s; ++j) {
+        const std::uint32_t j1 = (j + 1) % s;
+        // 北扇：从北看向赤道，j 增方向绕 Y 逆时针 → (north, j1, j)。
+        m.indices.push_back(north);
+        m.indices.push_back(ring_base + j1);
+        m.indices.push_back(ring_base + j);
+    }
+
+    const std::uint32_t mid_rings = options.stacks - 1;  // 中间纬线数
+    for (std::uint32_t i = 0; i + 1 < mid_rings; ++i) {
         for (std::uint32_t j = 0; j < s; ++j) {
-            const std::uint32_t n0 = i * s + j;
-            const std::uint32_t n1 = i * s + (j + 1) % s;
-            const std::uint32_t n2 = (i + 1) * s + j;
-            const std::uint32_t n3 = (i + 1) * s + (j + 1) % s;
-            // 绕序推导（外侧逆时针，D-009）：纬度 i 增对应向下 ∂φ，
-            // 经度 j 增对应绕 +Y ∂θ；赤道 θ=0 处实测 ∂θ×∂φ 指向球外，
-            // 故正确三角形为 (n0,n3,n2) 与 (n0,n1,n3)。
+            const std::uint32_t n0 = ring_base + i * s + j;
+            const std::uint32_t n1 = ring_base + i * s + (j + 1) % s;
+            const std::uint32_t n2 = ring_base + (i + 1) * s + j;
+            const std::uint32_t n3 = ring_base + (i + 1) * s + (j + 1) % s;
+            // 外侧逆时针（D-009）：纬度 i 增对应向下 ∂φ，经度 j 增对应绕 +Y ∂θ。
             m.indices.push_back(n0);
             m.indices.push_back(n3);
             m.indices.push_back(n2);
@@ -177,6 +195,16 @@ IndexedMesh sphere(const SphereOptions& options) {
             m.indices.push_back(n1);
             m.indices.push_back(n3);
         }
+    }
+
+    // 南扇：从南极点看，法线须朝外（+Y）。叉积 (P_{j1}-south)×(P_j-south) 的
+    // y = r²·sin(θ_{j1}-θ_j) > 0 → 三角形 (south, j1, j) 朝外（实测旧 (south,j,j1) 朝内）。
+    const std::uint32_t last_ring = ring_base + (mid_rings - 1) * s;
+    for (std::uint32_t j = 0; j < s; ++j) {
+        const std::uint32_t j1 = (j + 1) % s;
+        m.indices.push_back(south);
+        m.indices.push_back(last_ring + j1);
+        m.indices.push_back(last_ring + j);
     }
 
     finish(m);

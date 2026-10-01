@@ -56,9 +56,10 @@ TEST_CASE("sphere generator produces closed valid sphere with unit radius") {
     opt.stacks = 16;
     opt.slices = 24;
     const pm::geom::IndexedMesh m = pm::geom::generators::sphere(opt);
-    // 顶点 = 17 纬线 × 24 = 408；三角形 = 16×24×2 = 768。
-    CHECK(m.vertex_count() == 408);
-    CHECK(m.triangle_count() == 768);
+    // 顶点 = 2 极 + 15 中间纬线 × 24 = 362；
+    // 三角形 = 北扇 24 + 中间带 14×48 + 南扇 24 = 720（极点单顶点，无退化三角形）。
+    CHECK(m.vertex_count() == 362);
+    CHECK(m.triangle_count() == 720);
     const pm::geom::MeshStats s = m.stats();
     CHECK(near(s.bounds.min, pm::core::Vec3(-1.0f, -1.0f, -1.0f), 0.05f));
     CHECK(near(s.bounds.max, pm::core::Vec3(1.0f, 1.0f, 1.0f), 0.05f));
