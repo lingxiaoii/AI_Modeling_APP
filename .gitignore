@@ -12,6 +12,8 @@ cmake-build-*/
 *.so
 *.apk
 *.log
+.gradle/
+local.properties
 
 # 工具运行数据（非项目源码）
 .backup/

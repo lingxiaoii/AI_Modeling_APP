@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PocketModeler" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/pm_primary</item>
+        <item name="colorSecondary">@color/pm_secondary</item>
+    </style>
+</resources>

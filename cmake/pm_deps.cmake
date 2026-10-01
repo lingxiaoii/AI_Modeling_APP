@@ -8,6 +8,9 @@ include(FetchContent)
 # vendored 头不带 CMake target，直接定义 interface target 供 engine 链接。
 
 set(PM_THIRD_PARTY ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+if(DEFINED PM_ROOT)
+  set(PM_THIRD_PARTY ${PM_ROOT}/third_party)
+endif()
 
 # ---------- glm (vendored) ----------
 if(EXISTS ${PM_THIRD_PARTY}/glm/glm.hpp)

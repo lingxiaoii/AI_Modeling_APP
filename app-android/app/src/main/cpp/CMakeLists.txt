@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.22)
 project(pm_jni LANGUAGES CXX)
 
 # AGP externalNativeBuild 的 source dir 是 src/main/cpp：
-# workspace = ../../../..（cpp→main→src→app→app-android→workspace 共 5 级）。
-set(PM_ROOT ${CMAKE_SOURCE_DIR}/../../../../)
+# 仓库根 = cpp→main→src→app→app-android→仓库根 共 6 级。
+set(PM_ROOT ${CMAKE_SOURCE_DIR}/../../../../..)
 set(PM_ENGINE_DIR ${PM_ROOT}/engine)
 
 # 复用顶层依赖引导（find_package 优先 + FetchContent 兜底；PM_WITH_* 由 AGP -D 传入）。

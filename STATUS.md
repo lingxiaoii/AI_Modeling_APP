@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-M3-G 验证闭环（等待 G-01 任务卡）
+M3-A 安卓 APK（A-02 NDK 修错循环；A-01 CI android job 已落地，待 CI 验证）
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -80,12 +80,13 @@ M3-G 验证闭环（等待 G-01 任务卡）
 - /tests/meta_tools_test.cpp 元工具用例 6 个（batch 成功/继续执行/截断+嵌套拒/plan 引用/snapshot 往返+上限/倒序）◻
 
 ## 进行中
-- M3-G 验证闭环：G-01 停手清场 → G-02 仓库初始化 → G-03 首次推送 → G-04 CI 工作流 → G-05 修错循环至引擎全绿
+- M3-G 验证闭环：G-01~G-04 已完成；引擎 core CI 已全绿（用户确认 success）→ 进入 M3-A
+- M3-A 安卓 APK：A-01（CI android job + 构建配置修复）已落地，待 CI 验证
 
 ## 下一步
-1. G-01 停手清场
-2. G-02 仓库初始化
-3. G-03 首次推送
+1. A-02 NDK 修错循环（按用户回传 CI 日志）
+2. A-03 首个 APK Release（用户确认后）
+3. M3a-02 参考物叠加 + view_compare（CI 全绿后恢复）
 
 ## 决策记录
 D-001：工作区根目录即项目根，/engine 与 /app-android 直接位于其下。
@@ -145,3 +146,4 @@ D-054：安卓产物路线：引擎 CI 全绿后新增 M3-A 阶段，Actions 自
 D-055：CI 反馈环契约：用户输入只有两种合法形式——粘贴 Actions 日志报错段，或告知"跑完了"；两种输入均合法，禁止抱怨输入方式；收到日志先自查 token 前缀（D-049）再分析。
 D-056（G-01 迁移）：源码根目录自沙箱迁移至持久目录 /storage/emulated/0/PocketModeler/（用户确认）。复制 92 文件，计数双向一致 + 抽样 diff 全同；沙箱副本保留至首次 push 后清理。G-02 起仓库根 = /storage/emulated/0/PocketModeler。
 D-057（G-02 版本对齐）：CMake project 增 VERSION 0.0.0.1；Android versionName 自 "0.1.0" 改 "0.0.0.1"（versionCode 1 保持）；MCP serverInfo.version 未接线，登记待办（随 M2b 后续卡或 M3-G 后实现），本卡不实现（D-053e）。
+D-058（A-01 产出登记）：ci.yml 增设 android-apk job（ubuntu-latest + setup-java 17 + setup-android + setup-gradle 8.9 + assembleDebug，continue-on-error: true，APK 上传 artifact）；修复 app-android 3 处必挂缺陷——(1) cpp/CMakeLists.txt PM_ROOT 少一级（../../../../ → ../../../../..，仓库根 6 级）；(2) colors.xml 混入 <style> 违反 AAPT 资源文件类型规则，拆分为 styles.xml + colors.xml；(3) pm_deps.cmake PM_THIRD_PARTY 在 NDK 子构建需指向 PM_ROOT/third_party（新增 PM_ROOT 分支）。AGP 8.5.2→8.7.3、Kotlin 2.0.20→2.0.21、固定 ndkVersion 26.1.10909125。

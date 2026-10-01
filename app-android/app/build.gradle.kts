@@ -6,6 +6,8 @@ plugins {
 android {
     namespace = "com.pocketmodeler.app"
     compileSdk = 35
+    // 固定 NDK 版本：CI runner 预装该版本，避免自动下载失败。
+    ndkVersion = "26.1.10909125"
 
     defaultConfig {
         applicationId = "com.pocketmodeler.app"
