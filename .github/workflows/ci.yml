@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  engine-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (engine core, all heavy deps OFF)
+        run: |
+          cmake -S . -B build \
+            -DPM_BUILD_TESTS=ON \
+            -DPM_WITH_MANIFOLD=OFF \
+            -DPM_WITH_RENDER=OFF \
+            -DPM_WITH_MCP=OFF
+
+      - name: Build
+        run: cmake --build build -j2
+
+      - name: Test (doctest)
+        run: |
+          cd build
+          ctest --output-on-failure 2>&1 | tee ../ctest.log
+          ./tests/pm_tests 2>&1 | tee ../pm_tests.log
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-test-logs
+          path: |
+            ctest.log
+            pm_tests.log
+          if-no-files-found: warn
