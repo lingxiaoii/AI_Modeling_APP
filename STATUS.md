@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-M3-A 安卓 APK（A-02 NDK 修错循环；A-01 CI android job 已落地，待 CI 验证）
+M3-A 安卓 APK（A-02 修错循环已闭环：engine-core + android-apk 双 job 全绿；待 A-03 发布确认）
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -80,13 +80,13 @@ M3-A 安卓 APK（A-02 NDK 修错循环；A-01 CI android job 已落地，待 CI
 - /tests/meta_tools_test.cpp 元工具用例 6 个（batch 成功/继续执行/截断+嵌套拒/plan 引用/snapshot 往返+上限/倒序）◻
 
 ## 进行中
-- M3-G 验证闭环：G-01~G-04 已完成；引擎 core CI 已全绿（用户确认 success）→ 进入 M3-A
-- M3-A 安卓 APK：A-01（CI android job + 构建配置修复）已落地，待 CI 验证
+- M3-G 验证闭环：G-01~G-04 已完成；引擎 core CI 全绿（用户确认 success）→ 进入 M3-A ✅
+- M3-A 安卓 APK：A-01 + A-02 全部完成；engine-core 131/131 + android-apk 构建双绿（用户确认）→ 待 A-03
 
 ## 下一步
-1. A-02 NDK 修错循环（按用户回传 CI 日志）
-2. A-03 首个 APK Release（用户确认后）
-3. M3a-02 参考物叠加 + view_compare（CI 全绿后恢复）
+1. A-03 首个 APK Release（**需用户明确回复"可以发布"后才执行**，D-054：发布确认权在用户）
+2. 用户下载 APK "看样子"（壳层 UI / 服务 / 生命周期行为）
+3. M3a-02 参考物叠加 + view_compare（M3-A 结算后恢复）
 
 ## 决策记录
 D-001：工作区根目录即项目根，/engine 与 /app-android 直接位于其下。
