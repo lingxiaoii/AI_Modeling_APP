@@ -1,10 +1,13 @@
 package com.pocketmodeler.app
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 
 /**
@@ -12,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
  * 渲染线程由 C++ 侧管理（bgfx），surface 生命周期经 JNI 十函数桥透传；
  * surface 无效时渲染线程 sleep(200ms) 轮询，禁止销毁 bgfx 上下文。
  * 用户相机矩阵只存渲染线程本地，截图相机（M3）与用户相机永久隔离。
+ * 顶栏含「主页」按钮（T-01），手势返回（onBackPressed）保留。
  */
 class ViewportActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
@@ -20,7 +24,30 @@ class ViewportActivity : AppCompatActivity(), SurfaceHolder.Callback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         surfaceView = SurfaceView(this)
-        setContentView(FrameLayout(this).apply { addView(surfaceView) })
+
+        // 顶栏：主页按钮 + 标题（surface 占满剩余空间）。
+        val topBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(16, 16, 16, 16)
+        }
+        topBar.addView(Button(this).apply {
+            text = "主页"
+            setOnClickListener { finish() }  // 返回主页（手势返回同样生效）
+        })
+
+        val root = FrameLayout(this)
+        root.addView(topBar, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.TOP
+        ))
+        root.addView(surfaceView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+
+        setContentView(root)
         surfaceView.holder.addCallback(this)
     }
 

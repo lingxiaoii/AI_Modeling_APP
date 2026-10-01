@@ -22,7 +22,15 @@ class ModelerService : Service() {
 
     private var wakeLock: PowerManager.WakeLock? = null
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    /** 本地绑定：UI 经此订阅引擎状态（唯一来源 = C++ nativeGetStatus）。 */
+    private val binder = LocalBinder()
+
+    inner class LocalBinder : android.os.Binder() {
+        /** 当前引擎状态 JSON（与通知栏同一来源）。 */
+        fun engineStatus(): String = NativeBridge.nativeGetStatus()
+    }
+
+    override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onCreate() {
         super.onCreate()

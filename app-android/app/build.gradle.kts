@@ -45,6 +45,20 @@ android {
         release {
             isMinifyEnabled = false
         }
+        debug {
+            // 固定 debug 签名（仓库内 keystore/debug.keystore，见 README.md）。
+            // 覆盖安装不要求先卸载；正式签名仍禁止入库。
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    signingConfigs {
+        create("debug") {
+            storeFile = file("../keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildFeatures {

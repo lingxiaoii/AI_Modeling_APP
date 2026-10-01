@@ -1,19 +1,45 @@
 package com.pocketmodeler.app
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.Color
 import android.os.Bundle
+import android.os.IBinder
 import android.view.Gravity
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
-/** 服务开关 / 连接状态（M2b 起叠加二维码显示 MCP 地址）。 */
+/**
+ * 服务开关 / 连接状态（M2b 起叠加二维码显示 MCP 地址）。
+ * 状态同源（T-01）：Service 为引擎状态唯一来源，UI 经绑定订阅，
+ * 禁止 UI 各自维护静态变量。通知与主页文字永远一致。
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
     private lateinit var toggleButton: Button
+
+    private var service: ModelerService? = null
+    private var bound = false
+
+    /** 绑定 ModelerService：状态经 binder 订阅（服务为唯一来源）。 */
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            service = (binder as? ModelerService.LocalBinder)?.let { it }
+            bound = service != null
+            refreshStatus()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            service = null
+            bound = false
+            refreshStatus()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +78,27 @@ class MainActivity : AppCompatActivity() {
         setContentView(root)
     }
 
+    override fun onStart() {
+        super.onStart()
+        // 绑定服务订阅状态；服务未运行则自动拉起（前台服务由 toggle 控制，这里只绑定）。
+        val ok = bindService(Intent(this, ModelerService::class.java), connection, Context.BIND_AUTO_CREATE)
+        if (!ok) {
+            // 绑定失败（服务未启动）：状态按未运行处理。
+            bound = false
+            service = null
+        }
+        refreshStatus()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (bound) {
+            unbindService(connection)
+            bound = false
+            service = null
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         refreshStatus()
@@ -69,14 +116,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isServiceRunning(): Boolean {
-        // 引擎状态以 nativeGetStatus 为准；服务进程存续与否由系统调度。
-        // 简单起见：查询 native 状态（服务 onCreate 才会 start engine）。
-        val status = NativeBridge.nativeGetStatus()
+        // 状态唯一来源：绑定后经 Service 查询；未绑定（服务未起）回退 native 查询。
+        val status = service?.engineStatus() ?: NativeBridge.nativeGetStatus()
         return status.contains("\"state\":\"kRunning\"")
     }
 
     private fun refreshStatus() {
-        val status = NativeBridge.nativeGetStatus()
+        // 状态唯一来源：绑定后经 Service 查询；未绑定回退 native 查询（结果同源）。
+        val status = service?.engineStatus() ?: NativeBridge.nativeGetStatus()
         statusText.text = if (status.contains("\"state\":\"kRunning\"")) {
             getString(R.string.status_running)
         } else {
