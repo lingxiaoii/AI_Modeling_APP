@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-M3-A 安卓 APK：A-03 首个 Release 已发布（v0.0.0.1，含 app-debug.apk 6.77MB）；待用户下载"看样子"验证
+T-01 状态同步/返回按钮/画廊创建/固定调试签名：已闭环（CI 双 job 全绿，Release v0.0.0.1 已更新含新 APK）；待用户下载"看样子"验证 → 进入 T-02（连接信息页 + 工具列表页）
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -149,3 +149,4 @@ D-057（G-02 版本对齐）：CMake project 增 VERSION 0.0.0.1；Android versi
 D-058（A-01 产出登记）：ci.yml 增设 android-apk job（ubuntu-latest + setup-java 17 + setup-android + setup-gradle 8.9 + assembleDebug，continue-on-error: true，APK 上传 artifact）；修复 app-android 3 处必挂缺陷——(1) cpp/CMakeLists.txt PM_ROOT 少一级（../../../../ → ../../../../..，仓库根 6 级）；(2) colors.xml 混入 <style> 违反 AAPT 资源文件类型规则，拆分为 styles.xml + colors.xml；(3) pm_deps.cmake PM_THIRD_PARTY 在 NDK 子构建需指向 PM_ROOT/third_party（新增 PM_ROOT 分支）。AGP 8.5.2→8.7.3、Kotlin 2.0.20→2.0.21、固定 ndkVersion 26.1.10909125。
 D-059（A-02 双线修复产出）：【engine-core】CI 实证 10 个运行时测试失败全修：assembly attach 贴合公式用 child.local_bounds（position 不再重复计入）+ snap_fit 直接传原始 b；assert_registry 测试补 bbox_within 第 2 参数；capture_views 测试改 glm::inverse 提眼位；sphere 两极单顶点 + 南北扇朝外绕序（vertex 408→362、tri 768→720）；meta batch 取 error_code()（机器可读）；rpc id: 按 JSON-RPC 2.0 修正测试（id 字段存在即请求）；validator 中位数改下中位数 (size-1)/2 + has_support_below 逻辑修正（顶面够得着 + XZ 交叠）；viewport 构造时同步 surface 状态。【android-apk】setup-android@v3 在 cmdline-tools 16 报 sdkmanager tools 失败 → 删除该 action 用 runner 预装 SDK；jni_bridge.cpp g_current_window 前置声明（原在 JNI_OnUnload 之后未声明即用）+ 补 #include <android/native_window_jni.h>（ANativeWindow_fromSurface）；NativeBridge.kt 改 object + @JvmStatic（@file:JvmName 文件门面 Kotlin 侧 Unresolved）。engine-core 131/131 全绿 + android-apk 构建成功（用户确认双绿）。
 D-060（A-03 发布产出）：tag v0.0.0.1 推送 + GitHub Release v0.0.0.1 创建（无描述正文，D-052）+ app-debug.apk（6,770,017 字节）上传，下载地址 https://github.com/lingxiaoii/AI_Modeling_APP/releases/download/v0.0.0.1/app-debug.apk。网络：电信商故意丢包（github 连接率 8%），直连新加坡节点被墙，绕行 /etc/hosts 指向 140.82.112.4（美西）成功；artifact 大文件用 curl -C - 断点续传。0.0.0.x 阶段 APK 仅用于"看样子"（D-054）。
+D-061（T-01 三轮修复闭环）：b17e2a4（四功能首交付）→ 78eb396（signingConfigs create("debug") 与 AGP 内置 debug 冲突，改 getByName 覆盖）→ 4150d8e（MainActivity Unresolved engineStatus：LocalBinder 加 getService() 标准绑定模式 + ModelerService 服务级 engineStatus()）→ 4573c81（GalleryActivity byteArrayOf Int/Byte 类型不匹配：67 字节 PNG 全显式 .toByte()）。engine-core + android-apk 双 job 全绿（4573c81）；Release v0.0.0.1 更新为新 APK（6,786,401 字节，覆盖安装不再要求先卸载）。push 经验：电信丢包高发时段 git push 单次必败，循环重试（间隔 8s）第 1 次即成功；artifact 下载超长时用单次 200s 窗口（能拿 2.3MB）+ 多次完整重试直至全量 5,415,447 字节（GitHub artifact 不支持 range 续传，curl -C - 会一直卡在中断点）。
