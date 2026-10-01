@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
     /** 绑定 ModelerService：状态经 binder 订阅（服务为唯一来源）。 */
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            service = (binder as? ModelerService.LocalBinder)?.let { it }
+            service = (binder as? ModelerService.LocalBinder)?.getService()
             bound = service != null
             refreshStatus()
         }

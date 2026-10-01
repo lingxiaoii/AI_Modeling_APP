@@ -26,9 +26,15 @@ class ModelerService : Service() {
     private val binder = LocalBinder()
 
     inner class LocalBinder : android.os.Binder() {
+        /** 返回服务实例（标准绑定模式，供 UI 调用服务级方法）。 */
+        fun getService(): ModelerService = this@ModelerService
+
         /** 当前引擎状态 JSON（与通知栏同一来源）。 */
         fun engineStatus(): String = NativeBridge.nativeGetStatus()
     }
+
+    /** 当前引擎状态 JSON（服务为唯一来源，UI 经绑定调用；通知栏同一来源）。 */
+    fun engineStatus(): String = NativeBridge.nativeGetStatus()
 
     override fun onBind(intent: Intent?): IBinder = binder
 
