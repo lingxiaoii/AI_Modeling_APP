@@ -53,7 +53,9 @@ android {
     }
 
     signingConfigs {
-        create("debug") {
+        // AGP 已内置名为 debug 的 signingConfig，这里覆盖其密钥来源：
+        // 仓库内 keystore/debug.keystore（见 README.md，标准 android 调试密码）。
+        getByName("debug") {
             storeFile = file("../keystore/debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
