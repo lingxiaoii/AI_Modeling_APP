@@ -85,3 +85,61 @@ TEST_CASE("model_solidify rejects invalid primitive") {
     CHECK(res.error_code() == "invalid_primitive");
     pm::tools::triangle_budget().reset();
 }
+
+// ---------- subdivide（M4-03） ----------
+
+TEST_CASE("subdivide plane 1-4 tripling with shared edge midpoints") {
+    const pm::geom::IndexedMesh plane = pm::geom::generators::plane(pm::geom::generators::PlaneOptions{});
+    CHECK(plane.triangle_count() == 2);
+    const pm::geom::IndexedMesh sub = pm::geom::subdivide(plane, pm::geom::SubdivideOptions{1});
+    // 2 三角 → 8 三角（1-4）。
+    CHECK(sub.triangle_count() == 8);
+    // 顶点：4 原 + 5 中点（平面 4 边 + 1 对角线）= 9。共享边中点复用（防裂缝）。
+    CHECK(sub.vertex_count() == 9);
+    // AABB 不变（细分不改变几何范围）。
+    const pm::core::Aabb b0 = plane.bounds();
+    const pm::core::Aabb b1 = sub.bounds();
+    CHECK(b0.min.x == doctest::Approx(b1.min.x).epsilon(1e-4f));
+    CHECK(b0.max.x == doctest::Approx(b1.max.x).epsilon(1e-4f));
+}
+
+TEST_CASE("subdivide levels clamp to 3 and preserve watertightness") {
+    const pm::geom::IndexedMesh box = pm::geom::generators::box(pm::geom::generators::BoxOptions{});
+    const pm::geom::MeshQuality q0 = box.validate();
+    CHECK(q0.watertight);
+    // levels=3：12 三角 → 12*4^3 = 768。
+    const pm::geom::IndexedMesh sub = pm::geom::subdivide(box, pm::geom::SubdivideOptions{3});
+    CHECK(sub.triangle_count() == 12 * 64);
+    // levels>3 钳制为 3（性能保护 D-031）。
+    const pm::geom::IndexedMesh clamped = pm::geom::subdivide(box, pm::geom::SubdivideOptions{99});
+    CHECK(clamped.triangle_count() == sub.triangle_count());
+    // 细分保持水密（无裂缝）。
+    const pm::geom::MeshQuality q1 = sub.validate();
+    CHECK(q1.watertight);
+    CHECK(q1.boundary_edges == 0);
+    // AABB 合理（与原始 box 一致）。
+    const pm::core::Aabb b0 = box.bounds();
+    const pm::core::Aabb b1 = sub.bounds();
+    CHECK(b0.max.x == doctest::Approx(b1.max.x).epsilon(1e-4f));
+}
+
+TEST_CASE("subdivide levels 0 returns copy and rejects empty") {
+    const pm::geom::IndexedMesh plane = pm::geom::generators::plane(pm::geom::generators::PlaneOptions{});
+    const pm::geom::IndexedMesh copy = pm::geom::subdivide(plane, pm::geom::SubdivideOptions{0});
+    CHECK(copy.triangle_count() == plane.triangle_count());
+    CHECK(copy.vertex_count() == plane.vertex_count());
+    CHECK(pm::geom::subdivide(pm::geom::IndexedMesh{}, pm::geom::SubdivideOptions{1}).empty());
+}
+
+TEST_CASE("model_subdivide tool registers and respects budget") {
+    pm::tools::triangle_budget().reset();
+    pm::tools::ToolRegistry r;
+    pm::tools::register_builtin_tools(r);
+    CHECK(r.has("model_subdivide"));
+    const pm::tools::ToolResult res =
+        r.call("model_subdivide", pm::tools::json{{"primitive", "plane"}, {"levels", 1}});
+    CHECK(res.ok);
+    CHECK(res.data["triangle_count"] == 8);
+    CHECK(pm::tools::triangle_budget().used() == 8);
+    pm::tools::triangle_budget().reset();
+}

@@ -96,4 +96,63 @@ IndexedMesh solidify(const IndexedMesh& mesh, const SolidifyOptions& options) {
     return out;
 }
 
+IndexedMesh subdivide(const IndexedMesh& mesh, const SubdivideOptions& options) {
+    if (mesh.empty()) {
+        return IndexedMesh{};
+    }
+    std::uint32_t levels = options.levels;
+    if (levels > 3) {
+        levels = 3;  // D-031 性能保护：levels ≤3
+    }
+    if (levels == 0) {
+        return mesh;  // 原网格副本
+    }
+
+    IndexedMesh cur = mesh;
+    for (std::uint32_t l = 0; l < levels; ++l) {
+        IndexedMesh next;
+        // 边中点缓存：无向边 key → 新顶点索引（共享边防裂缝）。
+        std::map<std::uint64_t, std::uint32_t> mid_cache;
+        const std::uint32_t vcount = static_cast<std::uint32_t>(cur.positions.size());
+        // 原顶点先全部复制。
+        for (std::uint32_t i = 0; i < vcount; ++i) {
+            next.push_vertex(cur.positions[i]);
+        }
+        // 每三角形 1-4 剖分。
+        const std::uint32_t tcount = static_cast<std::uint32_t>(cur.triangle_count());
+        for (std::uint32_t t = 0; t < tcount; ++t) {
+            const std::uint32_t i0 = cur.indices[t * 3];
+            const std::uint32_t i1 = cur.indices[t * 3 + 1];
+            const std::uint32_t i2 = cur.indices[t * 3 + 2];
+
+            // 取或建三条边的中点。
+            const auto midpoint = [&](std::uint32_t a, std::uint32_t b) -> std::uint32_t {
+                const std::uint64_t key = edge_key(a, b);
+                const auto it = mid_cache.find(key);
+                if (it != mid_cache.end()) {
+                    return it->second;
+                }
+                const core::Vec3 m = (cur.positions[a] + cur.positions[b]) * 0.5f;
+                const std::uint32_t idx = static_cast<std::uint32_t>(next.positions.size());
+                next.push_vertex(m);
+                mid_cache[key] = idx;
+                return idx;
+            };
+
+            const std::uint32_t m01 = midpoint(i0, i1);
+            const std::uint32_t m12 = midpoint(i1, i2);
+            const std::uint32_t m20 = midpoint(i2, i0);
+
+            // 4 个小三角形（保持原绕序）。
+            next.push_triangle(i0, m01, m20);
+            next.push_triangle(m01, i1, m12);
+            next.push_triangle(m20, m12, i2);
+            next.push_triangle(m01, m12, m20);
+        }
+        next.compute_normals();
+        cur = std::move(next);
+    }
+    return cur;
+}
+
 }  // namespace pm::geom

@@ -19,4 +19,13 @@ struct SolidifyOptions {
 // 返回空网格表示参数非法（offset <= 0 或输入空）。
 IndexedMesh solidify(const IndexedMesh& mesh, const SolidifyOptions& options);
 
+struct SubdivideOptions {
+    // 细分层级（每级 1-4 剖分）；钳制 [0,3]（D-031 性能保护 levels ≤3）。
+    std::uint32_t levels{1};
+};
+
+// 细分：每三角形连接边中点 1-4 剖分；共享边中点复用（防裂缝）。
+// levels=0 返回原网格副本；levels>3 钳制为 3；输入空返回空。
+IndexedMesh subdivide(const IndexedMesh& mesh, const SubdivideOptions& options);
+
 }  // namespace pm::geom

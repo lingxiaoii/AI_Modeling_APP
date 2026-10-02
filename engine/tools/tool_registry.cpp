@@ -380,6 +380,62 @@ void register_builtin_tools(ToolRegistry& registry) {
             return ToolResult::success(std::move(data));
         },
         error);
+
+    // M4-03：model_subdivide 细分（levels ≤3，D-031 性能保护）。
+    registry.register_tool(
+        "model_subdivide",
+        json{{"type", "object"},
+             {"properties",
+              {{"primitive", json{{"type", "string"}}},
+               {"levels", json{{"type", "integer"}}},
+               {"size", json{{"type", "array"}}},
+               {"radius", json{{"type", "number"}}}}},
+             {"required", {"primitive"}}},
+        [](const json& a) -> ToolResult {
+            const std::string prim = a.at("primitive").get<std::string>();
+            const std::uint32_t levels = a.contains("levels") ? a["levels"].get<std::uint32_t>() : 1u;
+            pm::geom::IndexedMesh base;
+            if (prim == "box") {
+                pm::geom::generators::BoxOptions opt;
+                if (a.contains("size") && a["size"].is_array() && a["size"].size() == 3) {
+                    opt.size = pm::core::Vec3(a["size"][0].get<float>(), a["size"][1].get<float>(),
+                                              a["size"][2].get<float>());
+                }
+                base = pm::geom::generators::box(opt);
+            } else if (prim == "sphere") {
+                pm::geom::generators::SphereOptions opt;
+                if (a.contains("radius")) {
+                    opt.radius = a["radius"].get<float>();
+                }
+                base = pm::geom::generators::sphere(opt);
+            } else if (prim == "plane") {
+                pm::geom::generators::PlaneOptions opt;
+                base = pm::geom::generators::plane(opt);
+            } else {
+                return ToolResult::failure("invalid_primitive", "primitive must be box/sphere/plane");
+            }
+            const pm::geom::IndexedMesh sub = pm::geom::subdivide(base, pm::geom::SubdivideOptions{levels});
+            if (sub.empty()) {
+                return ToolResult::failure("subdivide_invalid_params", "input mesh empty");
+            }
+            const pm::geom::MeshQuality q = sub.validate();
+            if (!q.ok || q.has_error()) {
+                return ToolResult::failure("subdivide_result_invalid", q.summary());
+            }
+            const pm::geom::MeshStats s = sub.stats();
+            const pm::core::Aabb b = sub.bounds();
+            json data = {
+                {"vertex_count", sub.vertex_count()},
+                {"triangle_count", sub.triangle_count()},
+                {"bounds",
+                 {{"min", {b.min.x, b.min.y, b.min.z}},
+                  {"max", {b.max.x, b.max.y, b.max.z}}}},
+                {"signed_volume", s.signed_volume},
+                {"watertight", q.watertight},
+            };
+            return ToolResult::success(std::move(data));
+        },
+        error);
     (void)error;
 }
 
