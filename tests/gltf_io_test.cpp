@@ -23,8 +23,11 @@ TEST_CASE("glb export-import roundtrip preserves geometry") {
     std::string error;
     REQUIRE(pm::io::export_glb(box, glb, error));
     CHECK(glb.size() > 12);  // GLB header
-    // magic "glTF"
-    CHECK(glb[0] == 'g' && glb[1] == 'l' && glb[2] == 'T' && glb[3] == 'F');
+    // magic "glTF"（拆分为多个 CHECK，doctest 不支持复杂 && 表达式）
+    CHECK(glb[0] == 'g');
+    CHECK(glb[1] == 'l');
+    CHECK(glb[2] == 'T');
+    CHECK(glb[3] == 'F');
 
     const pm::geom::IndexedMesh back = pm::io::import_glb(glb, error);
     CHECK(!back.empty());
