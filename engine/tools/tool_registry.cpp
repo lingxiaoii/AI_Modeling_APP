@@ -8,6 +8,7 @@
 #include "geom/deform_ops.h"
 #include "geom/generators.h"
 #include "geom/manifold_bridge.h"
+#include "geom/sweeps.h"
 #include "scene/assert_registry.h"
 #include "tools/triangle_budget.h"
 
