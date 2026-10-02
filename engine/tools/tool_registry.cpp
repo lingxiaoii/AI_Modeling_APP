@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "geom/deform_ops.h"
 #include "geom/generators.h"
 #include "geom/manifold_bridge.h"
 #include "scene/assert_registry.h"
@@ -320,6 +321,63 @@ void register_builtin_tools(ToolRegistry& registry) {
         [](const json&) -> ToolResult {
             return ToolResult::failure("scene_not_available",
                                        "boolean requires SceneGraph (M2, pending)");
+        },
+        error);
+
+    // M4-02：model_solidify 薄壳化。输入图元参数 + offset，先生成图元再 solidify。
+    // 场景层落地前用"图元参数化"方式提供（UI/MCP 无需持有网格）。
+    registry.register_tool(
+        "model_solidify",
+        json{{"type", "object"},
+             {"properties",
+              {{"primitive", json{{"type", "string"}}},
+               {"offset", json{{"type", "number"}}},
+               {"size", json{{"type", "array"}}},
+               {"radius", json{{"type", "number"}}}}},
+             {"required", {"primitive"}}},
+        [](const json& a) -> ToolResult {
+            const std::string prim = a.at("primitive").get<std::string>();
+            const float offset = a.contains("offset") ? a["offset"].get<float>() : 0.05f;
+            pm::geom::IndexedMesh base;
+            if (prim == "box") {
+                pm::geom::generators::BoxOptions opt;
+                if (a.contains("size") && a["size"].is_array() && a["size"].size() == 3) {
+                    opt.size = pm::core::Vec3(a["size"][0].get<float>(), a["size"][1].get<float>(),
+                                              a["size"][2].get<float>());
+                }
+                base = pm::geom::generators::box(opt);
+            } else if (prim == "sphere") {
+                pm::geom::generators::SphereOptions opt;
+                if (a.contains("radius")) {
+                    opt.radius = a["radius"].get<float>();
+                }
+                base = pm::geom::generators::sphere(opt);
+            } else if (prim == "plane") {
+                pm::geom::generators::PlaneOptions opt;
+                base = pm::geom::generators::plane(opt);
+            } else {
+                return ToolResult::failure("invalid_primitive", "primitive must be box/sphere/plane");
+            }
+            const pm::geom::IndexedMesh solid = pm::geom::solidify(base, pm::geom::SolidifyOptions{offset, true});
+            if (solid.empty()) {
+                return ToolResult::failure("solidify_invalid_params", "offset must be positive");
+            }
+            const pm::geom::MeshQuality q = solid.validate();
+            if (!q.ok || q.has_error()) {
+                return ToolResult::failure("solidify_result_invalid", q.summary());
+            }
+            const pm::geom::MeshStats s = solid.stats();
+            const pm::core::Aabb b = solid.bounds();
+            json data = {
+                {"vertex_count", solid.vertex_count()},
+                {"triangle_count", solid.triangle_count()},
+                {"bounds",
+                 {{"min", {b.min.x, b.min.y, b.min.z}},
+                  {"max", {b.max.x, b.max.y, b.max.z}}}},
+                {"signed_volume", s.signed_volume},
+                {"watertight", q.watertight},
+            };
+            return ToolResult::success(std::move(data));
         },
         error);
     (void)error;
