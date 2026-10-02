@@ -7,6 +7,7 @@
 #include "geom/generators.h"
 #include "geom/manifold_bridge.h"
 #include "scene/assert_registry.h"
+#include "tools/triangle_budget.h"
 
 namespace pm::tools {
 namespace {
@@ -146,7 +147,23 @@ ToolResult ToolRegistry::call(const std::string& name, const json& args) const {
     }
     // 异常禁止跨工具边界（D-011）：任何 fn 内部 throw 都翻成 failure，保护 MCP 进程。
     try {
-        return it->second.fn(args);
+        ToolResult res = it->second.fn(args);
+        // 三角预算保护（M4 验收 d / D-031）：成功后按 triangle_count 记账，超限拒绝。
+        // 仅对 success 结果记账（failure 无产出）；data 含 triangle_count 才计入。
+        if (res.ok && res.data.is_object() && res.data.contains("triangle_count") &&
+            res.data["triangle_count"].is_number()) {
+            const std::int64_t delta = res.data["triangle_count"].get<std::int64_t>();
+            if (!triangle_budget().can_accept(delta)) {
+                // 超限：拒绝并返回可读错误（该工具产出不生效，场景未累计）。
+                return ToolResult::failure(
+                    "budget_exceeded",
+                    "triangle budget exceeded: used " + std::to_string(triangle_budget().used()) +
+                        " + " + std::to_string(delta) + " > limit " +
+                        std::to_string(kTriangleBudgetLimit));
+            }
+            triangle_budget().commit(delta);
+        }
+        return res;
     } catch (const std::exception& e) {
         return ToolResult::failure("tool_exception", e.what());
     } catch (...) {
