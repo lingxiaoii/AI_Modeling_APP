@@ -116,10 +116,7 @@ if(EXISTS ${PM_THIRD_PARTY}/tinygltf/tiny_gltf_v3.c)
   endif()
 endif()
 
-# ---------- meshoptimizer (vendored, M5 D-035) ----------
-# header-only 简化库（meshopt 减面/简化，D-037）。
-if(EXISTS ${PM_THIRD_PARTY}/meshoptimizer/meshoptimizer.h AND NOT TARGET meshoptimizer::meshoptimizer)
-  add_library(meshoptimizer::meshoptimizer INTERFACE IMPORTED)
-  set_target_properties(meshoptimizer::meshoptimizer PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES ${PM_THIRD_PARTY}/meshoptimizer)
-endif()
+# ---------- meshoptimizer (vendored header, M5 D-035) ----------
+# meshoptimizer.h 头已 vendor（固定选型 D-035），但官方实现为多文件依赖，网络不稳未完整
+# 拉取；简化功能当前由自研 geom/simplify（顶点聚类）承担（D-037 失败回退语义保留）。
+# 实现层待网络窗口补齐后，在本文件补 target 并链接。

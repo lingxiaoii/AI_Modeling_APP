@@ -16,7 +16,7 @@ file(GLOB_RECURSE PM_ENGINE_SOURCES CONFIGURE_DEPENDS
 
 add_library(pm_engine STATIC ${PM_ENGINE_SOURCES})
 target_include_directories(pm_engine PUBLIC ${PM_ENGINE_DIR})
-target_link_libraries(pm_engine PUBLIC glm::glm nlohmann_json::nlohmann_json tinygltf::tinygltf meshoptimizer::meshoptimizer)
+target_link_libraries(pm_engine PUBLIC glm::glm nlohmann_json::nlohmann_json tinygltf::tinygltf)
 target_compile_definitions(pm_engine PUBLIC
   GLM_FORCE_RADIANS
   GLM_FORCE_DEPTH_ZERO_TO_ONE)

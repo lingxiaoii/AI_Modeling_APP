@@ -8,9 +8,11 @@
 
 #include "core/math_types.h"
 #include "geom/indexed_mesh.h"
+#include "geom/simplify.h"
 
 #include "tiny_gltf_v3.h"
-#include "meshoptimizer.h"
+// meshoptimizer 头已 vendor（D-035 选型）；实现层多文件依赖+网络未完整拉取，
+// 简化功能由自研 geom/simplify（顶点聚类）承担（D-037 失败回退语义保留）。
 
 namespace pm::io {
 
@@ -260,54 +262,10 @@ bool export_glb(const pm::geom::IndexedMesh& mesh, std::vector<std::uint8_t>& ou
 
 pm::geom::IndexedMesh simplify_mesh(const pm::geom::IndexedMesh& mesh, float ratio,
                                     std::string& error) {
-    pm::geom::IndexedMesh out = mesh;  // 失败回退原网格（D-037）
-    if (mesh.empty()) {
-        error = "empty mesh";
-        return out;
-    }
-    if (ratio <= 0.0f || ratio > 1.0f) {
-        error = "ratio must be in (0,1]";
-        return out;
-    }
-    // meshopt：simplify 需要 (positions, indices) 展平数组。
-    std::vector<float> verts;
-    verts.reserve(mesh.vertex_count() * 3);
-    for (const auto& p : mesh.positions) {
-        verts.push_back(p.x);
-        verts.push_back(p.y);
-        verts.push_back(p.z);
-    }
-    const std::size_t index_count = mesh.indices.size();
-    std::vector<std::uint32_t> indices(mesh.indices.begin(), mesh.indices.end());
-    const std::size_t target_index_count = static_cast<std::size_t>(static_cast<float>(index_count) * ratio);
-    if (target_index_count < 3) {
-        error = "target too small";
-        return out;
-    }
-    std::vector<std::uint32_t> lod(indices.size());
-    const std::size_t valid = meshopt_simplify(
-        lod.data(), indices.data(), indices.size(), verts.data(), mesh.vertex_count(),
-        sizeof(float) * 3, target_index_count, 1e-2f, 0 /* options */);
-    // meshopt_simplify 返回有效索引数（destination 已写入的前 valid 个）。
-    if (valid == 0 || valid % 3 != 0) {
-        error = "simplify produced invalid count";
-        return out;
-    }
-    // 重建 IndexedMesh：按简化后索引引用原顶点。
-    pm::geom::IndexedMesh sim;
-    for (std::size_t i = 0; i < valid; i += 3) {
-        sim.push_triangle(lod[i], lod[i + 1], lod[i + 2]);
-    }
-    // 顶点保留原数组（meshopt 只精简索引不删顶点）。
-    sim.positions = mesh.positions;
-    sim.compute_normals();
-    // 断言三角数 ≤ 目标。
-    if (sim.triangle_count() > static_cast<std::size_t>(index_count / 3 * ratio)) {
-        error = "simplify exceeded target";
-        return out;
-    }
-    error.clear();
-    return sim;
+    // 自研顶点聚类简化（meshopt 实现层待网络补齐，D-035 头保留）。
+    pm::geom::SimplifyOptions opt;
+    opt.target_ratio = ratio;
+    return pm::geom::simplify(mesh, opt, error);
 }
 
 }  // namespace pm::io

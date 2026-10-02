@@ -19,8 +19,7 @@ target_compile_definitions(pm_engine PUBLIC
 target_link_libraries(pm_engine PUBLIC
   glm::glm
   nlohmann_json::nlohmann_json
-  tinygltf::tinygltf
-  meshoptimizer::meshoptimizer)
+  tinygltf::tinygltf)
 
 if(PM_WITH_MANIFOLD)
   target_compile_definitions(pm_engine PUBLIC PM_WITH_MANIFOLD=1)
