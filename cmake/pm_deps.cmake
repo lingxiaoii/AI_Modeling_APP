@@ -100,3 +100,21 @@ if(PM_BUILD_TESTS)
     endif()
   endif()
 endif()
+
+# ---------- tinygltf v3 (vendored, M5 D-035) ----------
+# C11 实现：tiny_gltf_v3.h/.c + tinygltf_json_c.h；GLB 只读导入。
+# 需编译 .c → 定义 STATIC 库（零网络，header+2 源文件）。
+if(EXISTS ${PM_THIRD_PARTY}/tinygltf/tiny_gltf_v3.c AND NOT TARGET tinygltf::tinygltf)
+  add_library(tinygltf::tinygltf STATIC
+    ${PM_THIRD_PARTY}/tinygltf/tiny_gltf_v3.c)
+  target_include_directories(tinygltf::tinygltf PUBLIC ${PM_THIRD_PARTY}/tinygltf)
+  target_compile_definitions(tinygltf::tinygltf PUBLIC TINYGLTF3_ENABLE_FS)
+endif()
+
+# ---------- meshoptimizer (vendored, M5 D-035) ----------
+# header-only 简化库（meshopt 减面/简化，D-037）。
+if(EXISTS ${PM_THIRD_PARTY}/meshoptimizer/meshoptimizer.h AND NOT TARGET meshoptimizer::meshoptimizer)
+  add_library(meshoptimizer::meshoptimizer INTERFACE IMPORTED)
+  set_target_properties(meshoptimizer::meshoptimizer PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES ${PM_THIRD_PARTY}/meshoptimizer)
+endif()
