@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-M4 批量工具卡：M4-01 三角预算 ✅ d1c3bab、M4-02 solidify ✅ ad6addd 已闭环（CI 双 job 全绿）→ 下一卡 M4-03 subdivide 细分（levels≤3，D-031）
+M4 批量工具卡：M4-01 预算 ✅、M4-02 solidify ✅、M4-03 subdivide ✅ 已闭环（CI 双 job 全绿）→ 下一卡 M4-04 repeat 阵列（自动成组，D-030）
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -165,3 +165,4 @@ D-064（T-04 代码部分产出，commit 9d45499）：视口最小编辑集 UI +
 D-065（M3a-02 产出，commit e12609e）：参考物叠加 + view_compare（M3 收尾卡）。reference_objects.h/.cpp：1m 网格（XZ 平面 Y=0，单位间距恰 1m，±half 逐米；line_count 钳制 half<1→1）+ 1.7m 人形（头圆 16 段 + 躯干 + 腿 + 臂，脚底 Y=0 头顶 Y=1.7，总高 kHumanoidHeight=1.7）；纯数学生成仅注入截图管线（D-019 铁律 8 不进场景/序列化/校验）。view_compare.h/.cpp：MCP 工具（view_ 前缀，D-013），输入 left/right/output 路径，OFF 桩返回 render_support_disabled（D-006），ON 分支真实差异+并排拼图待渲染接入；注册进 registry_global（tools/list 自动可见）。测试：reference_objects_test（网格线数/间距 1m/人形总高 1.7m/头顶 1.7/钳制）+ view_compare_test（注册/缺参/桩错误/空路径）+ capture_views_test 已有相机数学断言。**修复轮**：view_compare.h 缺 tool_registry.h include（头文件自给自足违反，CI 实证）→ 补 include 后双 job 全绿。M3 里程碑结算：M3a（四视图+缩略图+回放）、M3b（组装/assert 登记）、M3c（batch/plan/snapshot）、M3d（装配/镜像）、M3-G（验证闭环）、M3-A（APK 发布）、M3a-02（参考物+view_compare）全部闭环。
 D-066（M4-01 三角预算保护，commit d1c3bab）：triangle_budget.h/.cpp 进程级单例（kTriangleBudgetLimit=200,000；can_accept/commit/reset/used/remaining）；ToolRegistry.call 集成——success 且 data 含 triangle_count 时记账，超限返回 budget_exceeded 可读错误且不记账；failure 结果不记账。测试 5 用例（accept/commit/reset、超限拒绝、call 集成记账、call 超限拒绝、failure 不记账）。M4 卡清单固化（磁盘无独立卡文件，按 D-026~D-042 决策推导）：M4-01 三角预算（✅ d1c3bab）、M4-02 solidify 薄壳（D-029）、M4-03 subdivide 细分（D-031）、M4-04 repeat 阵列（D-030）、M4-05 scatter 散布（D-027/030）、M4-06 lathe 旋转体（D-028）、M4-07 loft 放样（D-028）、M4-08 sweep 扫掠（D-028）、M4-09 template_apply 模板（D-029）、M4-10 生成器族 树/石/房/栅栏/家具/角色（D-026）、M4-11 法线重算（D-027）、M4-12 校验器集成（M4 验收 c）。
 D-067（M4-02 solidify 薄壳，commit ad6addd）：deform_ops.h/.cpp 纯数学 solidify——薄面复制+翻转+边界桥接为板（cap_open），封闭体气球化（整体外扩，真抽壳不做 D-029）；面积加权顶点法线偏移，变形后 compute_normals 重算（D-027）；边界边用 64 位无向边键统计（count==1）。model_solidify 工具注册（primitive=box/sphere/plane + offset，场景层落地前图元参数化；返回 vertex/triangle/bounds/volume/watertight；失败可读错误）。测试 6 用例（plane→水密 8v/12t、sphere 气球化 AABB 外扩、非法参数空、manifold+正体积、工具注册+预算记账 12t、非法 primitive）。**已知待强化**：侧壁桥接绕序未统一（可能局部内翻），M4-12 校验器集成卡严格化朝向。
+D-068（M4-03 subdivide 细分，commit 7aa6af6）：deform_ops.cpp 追加 subdivide——每三角形 1-4 剖分（连接边中点），共享边中点缓存（64 位无向边键，防裂缝）；levels 钳制 [0,3]（D-031 性能保护）；levels=0 返回副本；每级 compute_normals 重算。model_subdivide 工具注册（primitive + levels，图元参数化；返回统计）。测试 4 用例（plane 2→8 三角 + 9 顶点共享中点、box levels=3 → 12*64 三角 + 水密保持 + levels>3 钳制、levels=0 副本 + 空输入、工具注册 + 预算记账 8t）。
