@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "tools/tool_registry.h"
 #include "tools/tool_result.h"
 
 // view_compare（M3a-02）：版本对比工具。输入两张截图（或同模型两个版本快照），
