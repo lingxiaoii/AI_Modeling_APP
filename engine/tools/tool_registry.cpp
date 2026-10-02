@@ -592,6 +592,155 @@ void register_array_tools(pm::tools::ToolRegistry& registry) {
     (void)error;
 }
 
+// M4-06/07/08：model_lathe / model_loft / model_sweep（旋转体/放样/扫掠，D-028）。
+void register_sweep_tools(pm::tools::ToolRegistry& registry) {
+    std::string error;
+
+    // model_lathe：轮廓（radius,height 点数组）绕 Y 轴旋转，segments 分段，自动加盖。
+    registry.register_tool(
+        "model_lathe",
+        pm::tools::json{{"type", "object"},
+                        {"properties",
+                         {{"profile", pm::tools::json{{"type", "array"}}},
+                          {"segments", pm::tools::json{{"type", "integer"}}},
+                          {"cap_top", pm::tools::json{{"type", "boolean"}}},
+                          {"cap_bottom", pm::tools::json{{"type", "boolean"}}}}},
+                        {"required", {"profile"}}},
+        [](const pm::tools::json& a) -> ToolResult {
+            pm::geom::LatheOptions opt;
+            if (!a["profile"].is_array() || a["profile"].size() < 2) {
+                return pm::tools::ToolResult::failure("lathe_invalid_profile", "profile needs >=2 points");
+            }
+            for (const auto& p : a["profile"]) {
+                if (!p.is_array() || p.size() != 2) {
+                    return pm::tools::ToolResult::failure("lathe_invalid_profile", "each point is [radius,height]");
+                }
+                opt.profile.emplace_back(p[0].get<float>(), p[1].get<float>());
+            }
+            if (a.contains("segments")) { opt.segments = a["segments"].get<std::uint32_t>(); }
+            if (a.contains("cap_top")) { opt.cap_top = a["cap_top"].get<bool>(); }
+            if (a.contains("cap_bottom")) { opt.cap_bottom = a["cap_bottom"].get<bool>(); }
+            const pm::geom::IndexedMesh mesh = pm::geom::lathe(opt);
+            if (mesh.empty()) {
+                return pm::tools::ToolResult::failure("lathe_invalid_params", "segments>=3, profile>=2");
+            }
+            const pm::geom::MeshQuality q = mesh.validate();
+            if (!q.ok || q.has_error()) {
+                return pm::tools::ToolResult::failure("lathe_result_invalid", q.summary());
+            }
+            const pm::geom::MeshStats s = mesh.stats();
+            const pm::core::Aabb b = mesh.bounds();
+            return pm::tools::ToolResult::success(pm::tools::json{
+                {"vertex_count", mesh.vertex_count()},
+                {"triangle_count", mesh.triangle_count()},
+                {"bounds", {{"min", {b.min.x, b.min.y, b.min.z}}, {"max", {b.max.x, b.max.y, b.max.z}}}},
+                {"signed_volume", s.signed_volume},
+                {"watertight", q.watertight},
+            });
+        },
+        error);
+
+    // model_loft：截面点数组（每截面为顶点环，各截面顶点数一致）。
+    registry.register_tool(
+        "model_loft",
+        pm::tools::json{{"type", "object"},
+                        {"properties",
+                         {{"sections", pm::tools::json{{"type", "array"}}},
+                          {"cap_start", pm::tools::json{{"type", "boolean"}}},
+                          {"cap_end", pm::tools::json{{"type", "boolean"}}}}},
+                        {"required", {"sections"}}},
+        [](const pm::tools::json& a) -> ToolResult {
+            pm::geom::LoftOptions opt;
+            if (!a["sections"].is_array() || a["sections"].size() < 2) {
+                return pm::tools::ToolResult::failure("loft_invalid_sections", "need >=2 sections");
+            }
+            for (const auto& sec : a["sections"]) {
+                if (!sec.is_array() || sec.size() < 3) {
+                    return pm::tools::ToolResult::failure("loft_invalid_sections", "each section >=3 points");
+                }
+                std::vector<pm::core::Vec3> ring;
+                for (const auto& p : sec) {
+                    if (!p.is_array() || p.size() != 3) {
+                        return pm::tools::ToolResult::failure("loft_invalid_sections", "each point is [x,y,z]");
+                    }
+                    ring.emplace_back(p[0].get<float>(), p[1].get<float>(), p[2].get<float>());
+                }
+                opt.sections.push_back(std::move(ring));
+            }
+            if (a.contains("cap_start")) { opt.cap_start = a["cap_start"].get<bool>(); }
+            if (a.contains("cap_end")) { opt.cap_end = a["cap_end"].get<bool>(); }
+            const pm::geom::IndexedMesh mesh = pm::geom::loft(opt);
+            if (mesh.empty()) {
+                return pm::tools::ToolResult::failure("loft_section_count_mismatch",
+                                                       "all sections must have same vertex count (D-028)");
+            }
+            const pm::geom::MeshQuality q = mesh.validate();
+            if (!q.ok || q.has_error()) {
+                return pm::tools::ToolResult::failure("loft_result_invalid", q.summary());
+            }
+            const pm::geom::MeshStats s = mesh.stats();
+            const pm::core::Aabb b = mesh.bounds();
+            return pm::tools::ToolResult::success(pm::tools::json{
+                {"vertex_count", mesh.vertex_count()},
+                {"triangle_count", mesh.triangle_count()},
+                {"bounds", {{"min", {b.min.x, b.min.y, b.min.z}}, {"max", {b.max.x, b.max.y, b.max.z}}}},
+                {"signed_volume", s.signed_volume},
+                {"watertight", q.watertight},
+            });
+        },
+        error);
+
+    // model_sweep：剖面（2D 点数组）+ 路径（3D 点数组），平行传输标架。
+    registry.register_tool(
+        "model_sweep",
+        pm::tools::json{{"type", "object"},
+                        {"properties",
+                         {{"profile", pm::tools::json{{"type", "array"}}},
+                          {"path", pm::tools::json{{"type", "array"}}}}},
+                        {"required", {"profile", "path"}}},
+        [](const pm::tools::json& a) -> ToolResult {
+            pm::geom::SweepOptions opt;
+            if (!a["profile"].is_array() || a["profile"].size() < 3) {
+                return pm::tools::ToolResult::failure("sweep_invalid_profile", "profile needs >=3 points");
+            }
+            for (const auto& p : a["profile"]) {
+                if (!p.is_array() || p.size() != 2) {
+                    return pm::tools::ToolResult::failure("sweep_invalid_profile", "each point is [x,y]");
+                }
+                opt.profile.emplace_back(p[0].get<float>(), p[1].get<float>());
+            }
+            if (!a["path"].is_array() || a["path"].size() < 2) {
+                return pm::tools::ToolResult::failure("sweep_invalid_path", "path needs >=2 points");
+            }
+            for (const auto& p : a["path"]) {
+                if (!p.is_array() || p.size() != 3) {
+                    return pm::tools::ToolResult::failure("sweep_invalid_path", "each point is [x,y,z]");
+                }
+                opt.path.emplace_back(p[0].get<float>(), p[1].get<float>(), p[2].get<float>());
+            }
+            if (a.contains("closed")) { opt.closed = a["closed"].get<bool>(); }
+            const pm::geom::IndexedMesh mesh = pm::geom::sweep(opt);
+            if (mesh.empty()) {
+                return pm::tools::ToolResult::failure("sweep_invalid_params", "profile>=3, path>=2");
+            }
+            const pm::geom::MeshQuality q = mesh.validate();
+            if (!q.ok || q.has_error()) {
+                return pm::tools::ToolResult::failure("sweep_result_invalid", q.summary());
+            }
+            const pm::geom::MeshStats s = mesh.stats();
+            const pm::core::Aabb b = mesh.bounds();
+            return pm::tools::ToolResult::success(pm::tools::json{
+                {"vertex_count", mesh.vertex_count()},
+                {"triangle_count", mesh.triangle_count()},
+                {"bounds", {{"min", {b.min.x, b.min.y, b.min.z}}, {"max", {b.max.x, b.max.y, b.max.z}}}},
+                {"signed_volume", s.signed_volume},
+                {"watertight", q.watertight},
+            });
+        },
+        error);
+    (void)error;
+}
+
 // M3b-02 集成钩子：assert_register 工具（会话内验收标准登记）。
 // 场景层（SceneGraph）未落地前，登记只写入 AssertRegistry，校验在场景层接入后
 // 由 ToolRegistry 写工具执行钩子消费（validator 字段）。此处提供完整工具语义。

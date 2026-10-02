@@ -54,5 +54,7 @@ void register_builtin_tools(ToolRegistry& registry);
 void register_assert_tools(ToolRegistry& registry, pm::scene::AssertRegistry& asserts);
 // M4-04/M4-05：model_array（线性阵列）+ model_scatter（种子化散布）。
 void register_array_tools(ToolRegistry& registry);
+// M4-06/07/08：model_lathe / model_loft / model_sweep（旋转体/放样/扫掠，D-028）。
+void register_sweep_tools(ToolRegistry& registry);
 
 }  // namespace pm::tools
