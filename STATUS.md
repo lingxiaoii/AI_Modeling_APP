@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-T-01 状态同步/返回按钮/画廊创建/固定调试签名：已闭环（CI 双 job 全绿，Release v0.0.0.1 已更新含新 APK）；待用户下载"看样子"验证 → 进入 T-02（连接信息页 + 工具列表页）
+T-02 连接信息页 + 工具列表页：已闭环（CI 双 job 全绿 44abeb6，McpInfo 单例 + registry 全局 + JNI getMcpInfo）；代码✅（CI）+ 设备复验：在账（待批量装机验证，D-056 批处理纪律）→ 下一卡 M3a-02（参考物叠加 + view_compare）
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -78,6 +78,15 @@ T-01 状态同步/返回按钮/画廊创建/固定调试签名：已闭环（CI 
 - /tests/assembly_tools_test.cpp 组装用例 8 个（屋顶贴墙/柱贴墙/offset/非法面/stack/side/group/mirror 对称）◻
 - /engine/tools/meta_tools.h/.cpp 元工具（batch ≤20 不嵌套 + plan 浅校验 + snapshot 上限 8 FIFO）◻
 - /tests/meta_tools_test.cpp 元工具用例 6 个（batch 成功/继续执行/截断+嵌套拒/plan 引用/snapshot 往返+上限/倒序）◻
+- /engine/tools/registry_global.h/.cpp 进程级 ToolRegistry 单例（首次注册内置 6 工具 + model_assert；asserts 静态防悬垂）✅（T-02，CI 44abeb6）
+- /engine/mcp/mcp_info.h/.cpp McpInfo 单例（token 注入幂等 + 端口 8642 + host）✅（T-02，CI 44abeb6）
+- /engine/mcp/http_server.h 默认端口 8765→8642（T-02 卡约定）✅（T-02，CI 44abeb6）
+- /app-android jni_bridge.cpp 10 函数（+nativeGetMcpInfo 注入+查询 JSON）✅（T-02，CI 44abeb6）
+- /app-android McpTokenStore.kt token 持久化（SecureRandom 32B hex + SharedPreferences）✅（T-02，CI 44abeb6）
+- /app-android ConnectionActivity.kt 连接信息页（IP 实时枚举 WiFi/网卡 + 端口 + token 全文 + 一键复制）✅（T-02，CI 44abeb6）
+- /app-android ToolsActivity.kt 工具列表页（ToolRegistry 实数 + 列表，与 MCP 同源禁硬编码）✅（T-02，CI 44abeb6）
+- /app-android MainActivity 增「连接信息」「工具列表」入口 ✅（T-02，CI 44abeb6）
+- /tests/registry_global_test.cpp 6 用例（单例同源/注册数/端到端/端口约定/token 幂等/空态）✅（T-02，CI 44abeb6）
 
 ## 进行中
 - M3-G 验证闭环：G-01~G-04 已完成；引擎 core CI 全绿（用户确认 success）→ 进入 M3-A ✅
@@ -150,3 +159,4 @@ D-058（A-01 产出登记）：ci.yml 增设 android-apk job（ubuntu-latest + s
 D-059（A-02 双线修复产出）：【engine-core】CI 实证 10 个运行时测试失败全修：assembly attach 贴合公式用 child.local_bounds（position 不再重复计入）+ snap_fit 直接传原始 b；assert_registry 测试补 bbox_within 第 2 参数；capture_views 测试改 glm::inverse 提眼位；sphere 两极单顶点 + 南北扇朝外绕序（vertex 408→362、tri 768→720）；meta batch 取 error_code()（机器可读）；rpc id: 按 JSON-RPC 2.0 修正测试（id 字段存在即请求）；validator 中位数改下中位数 (size-1)/2 + has_support_below 逻辑修正（顶面够得着 + XZ 交叠）；viewport 构造时同步 surface 状态。【android-apk】setup-android@v3 在 cmdline-tools 16 报 sdkmanager tools 失败 → 删除该 action 用 runner 预装 SDK；jni_bridge.cpp g_current_window 前置声明（原在 JNI_OnUnload 之后未声明即用）+ 补 #include <android/native_window_jni.h>（ANativeWindow_fromSurface）；NativeBridge.kt 改 object + @JvmStatic（@file:JvmName 文件门面 Kotlin 侧 Unresolved）。engine-core 131/131 全绿 + android-apk 构建成功（用户确认双绿）。
 D-060（A-03 发布产出）：tag v0.0.0.1 推送 + GitHub Release v0.0.0.1 创建（无描述正文，D-052）+ app-debug.apk（6,770,017 字节）上传，下载地址 https://github.com/lingxiaoii/AI_Modeling_APP/releases/download/v0.0.0.1/app-debug.apk。网络：电信商故意丢包（github 连接率 8%），直连新加坡节点被墙，绕行 /etc/hosts 指向 140.82.112.4（美西）成功；artifact 大文件用 curl -C - 断点续传。0.0.0.x 阶段 APK 仅用于"看样子"（D-054）。
 D-061（T-01 三轮修复闭环）：b17e2a4（四功能首交付）→ 78eb396（signingConfigs create("debug") 与 AGP 内置 debug 冲突，改 getByName 覆盖）→ 4150d8e（MainActivity Unresolved engineStatus：LocalBinder 加 getService() 标准绑定模式 + ModelerService 服务级 engineStatus()）→ 4573c81（GalleryActivity byteArrayOf Int/Byte 类型不匹配：67 字节 PNG 全显式 .toByte()）。engine-core + android-apk 双 job 全绿（4573c81）；Release v0.0.0.1 更新为新 APK（6,786,401 字节，覆盖安装不再要求先卸载）。push 经验：电信丢包高发时段 git push 单次必败，循环重试（间隔 8s）第 1 次即成功；artifact 下载超长时用单次 200s 窗口（能拿 2.3MB）+ 多次完整重试直至全量 5,415,447 字节（GitHub artifact 不支持 range 续传，curl -C - 会一直卡在中断点）。
+D-062（T-02 产出登记，commit 44abeb6）：连接信息页 + 工具列表页。架构决策：(1) 进程级 ToolRegistry 单例 registry()（首次注册内置 6 工具 + model_assert；asserts 必须静态否则 model_assert 工具 fn 悬垂 UB——register_assert_tools 捕获 asserts 引用）；(2) McpInfo 单例 {token, port=8642, host}，token 由壳层 McpTokenStore（SecureRandom 32B hex + SharedPreferences）生成持久化，经 JNI nativeGetMcpInfo(shellToken) 注入（幂等，非空保留首值）；token 只在本地 UI 直读不经网络；(3) JNI 保持 ≤10（原 9 + nativeGetMcpInfo = 10，不超宪法；曾误替换 nativeGetStatus 已恢复）；(4) http_server.h 默认端口 8765→8642（卡约定）；(5) ConnectionActivity 实时枚举本机 IPv4（WiFi 优先 + 网卡兜底，飞行模式显示可读提示）+ 复制按钮；ToolsActivity 显示 tool_count + 列表（同源禁硬编码）。测试 6 用例。
