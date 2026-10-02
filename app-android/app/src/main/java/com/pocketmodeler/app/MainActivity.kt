@@ -81,12 +81,18 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { startActivity(Intent(this@MainActivity, ToolsActivity::class.java)) }
         }
 
+        val openDiagnostics = Button(this).apply {
+            text = getString(R.string.open_diagnostics)
+            setOnClickListener { shareDiagnostics() }
+        }
+
         root.addView(statusText)
         root.addView(toggleButton)
         root.addView(openViewport)
         root.addView(openGallery)
         root.addView(openConnection)
         root.addView(openTools)
+        root.addView(openDiagnostics)
         setContentView(root)
     }
 
@@ -125,6 +131,16 @@ class MainActivity : AppCompatActivity() {
             startForegroundService(intent)
         }
         refreshStatus()
+    }
+
+    /** 诊断按钮：生成纯文本报告 → 系统分享面板（可复制）。报告不含凭据。 */
+    private fun shareDiagnostics() {
+        val report = Diagnostics.build(this)
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, report)
+        }
+        startActivity(Intent.createChooser(send, "分享诊断报告"))
     }
 
     private fun isServiceRunning(): Boolean {
