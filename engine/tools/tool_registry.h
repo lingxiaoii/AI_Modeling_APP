@@ -52,5 +52,7 @@ bool validate_args(const json& schema, const json& args, std::string& error);
 void register_builtin_tools(ToolRegistry& registry);
 // M3b-02：assert_register 工具（会话内验收标准登记到 AssertRegistry）。
 void register_assert_tools(ToolRegistry& registry, pm::scene::AssertRegistry& asserts);
+// M4-04/M4-05：model_array（线性阵列）+ model_scatter（种子化散布）。
+void register_array_tools(ToolRegistry& registry);
 
 }  // namespace pm::tools

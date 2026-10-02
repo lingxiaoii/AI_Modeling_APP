@@ -19,6 +19,7 @@ ToolRegistry& ensure_registry() {
         register_builtin_tools(*r);
         register_assert_tools(*r, s_asserts);
         register_view_compare_tool(*r);
+        register_array_tools(*r);
         return r;
     }();
     return *s_registry;

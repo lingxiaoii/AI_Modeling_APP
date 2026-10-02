@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "geom/array_ops.h"
 #include "geom/deform_ops.h"
 #include "geom/generators.h"
 #include "geom/manifold_bridge.h"
@@ -434,6 +435,158 @@ void register_builtin_tools(ToolRegistry& registry) {
                 {"watertight", q.watertight},
             };
             return ToolResult::success(std::move(data));
+        },
+        error);
+    (void)error;
+}
+
+// M4-04/M4-05：model_array（线性阵列）+ model_scatter（种子化散布）。
+void register_array_tools(pm::tools::ToolRegistry& registry) {
+    std::string error;
+
+    // model_array：repeat 线性阵列，count 前置预算校验（M4 验收 d）。
+    registry.register_tool(
+        "model_array",
+        pm::tools::json{{"type", "object"},
+                        {"properties",
+                         {{"primitive", pm::tools::json{{"type", "string"}}},
+                          {"count", pm::tools::json{{"type", "integer"}}},
+                          {"step_x", pm::tools::json{{"type", "number"}}},
+                          {"step_y", pm::tools::json{{"type", "number"}}},
+                          {"step_z", pm::tools::json{{"type", "number"}}}}},
+                        {"required", {"primitive"}}},
+        [](const pm::tools::json& a) -> ToolResult {
+            const std::string prim = a.at("primitive").get<std::string>();
+            const std::uint32_t count = a.contains("count") ? a["count"].get<std::uint32_t>() : 2u;
+            if (count > 500) {
+                return ToolResult::failure("array_count_exceeded", "count must be <= 500 (D-031)");
+            }
+            pm::geom::IndexedMesh base;
+            if (prim == "box") {
+                pm::geom::generators::BoxOptions opt;
+                if (a.contains("size") && a["size"].is_array() && a["size"].size() == 3) {
+                    opt.size = pm::core::Vec3(a["size"][0].get<float>(), a["size"][1].get<float>(),
+                                              a["size"][2].get<float>());
+                }
+                base = pm::geom::generators::box(opt);
+            } else if (prim == "sphere") {
+                pm::geom::generators::SphereOptions opt;
+                if (a.contains("radius")) {
+                    opt.radius = a["radius"].get<float>();
+                }
+                base = pm::geom::generators::sphere(opt);
+            } else {
+                return ToolResult::failure("invalid_primitive", "primitive must be box/sphere");
+            }
+            // 预算前置校验（M4 验收 d：阵列/模板类执行前先预算校验）。
+            const std::int64_t per_copy = static_cast<std::int64_t>(base.triangle_count());
+            if (!pm::tools::triangle_budget().can_accept(per_copy * count)) {
+                return ToolResult::failure(
+                    "budget_exceeded",
+                    "array would exceed triangle budget: " + std::to_string(per_copy * count) +
+                        " triangles");
+            }
+            pm::geom::RepeatOptions opt;
+            opt.count = count;
+            opt.step = pm::core::Vec3(
+                a.contains("step_x") ? a["step_x"].get<float>() : 1.0f,
+                a.contains("step_y") ? a["step_y"].get<float>() : 0.0f,
+                a.contains("step_z") ? a["step_z"].get<float>() : 0.0f);
+            const pm::geom::IndexedMesh arr = pm::geom::repeat(base, opt);
+            const pm::geom::MeshQuality q = arr.validate();
+            if (!q.ok || q.has_error()) {
+                return ToolResult::failure("array_result_invalid", q.summary());
+            }
+            const pm::geom::MeshStats s = arr.stats();
+            const pm::core::Aabb b = arr.bounds();
+            pm::tools::json data = {
+                {"vertex_count", arr.vertex_count()},
+                {"triangle_count", arr.triangle_count()},
+                {"bounds",
+                 {{"min", {b.min.x, b.min.y, b.min.z}},
+                  {"max", {b.max.x, b.max.y, b.max.z}}}},
+                {"signed_volume", s.signed_volume},
+                {"watertight", q.watertight},
+                {"group", prim + "_array"},  // D-030：自动成组
+            };
+            return pm::tools::ToolResult::success(std::move(data));
+        },
+        error);
+
+    // model_scatter：种子化散布，同 seed 同结果（D-027）。
+    registry.register_tool(
+        "model_scatter",
+        pm::tools::json{{"type", "object"},
+                        {"properties",
+                         {{"primitive", pm::tools::json{{"type", "string"}}},
+                          {"count", pm::tools::json{{"type", "integer"}}},
+                          {"seed", pm::tools::json{{"type", "integer"}}},
+                          {"min_x", pm::tools::json{{"type", "number"}}},
+                          {"min_y", pm::tools::json{{"type", "number"}}},
+                          {"min_z", pm::tools::json{{"type", "number"}}},
+                          {"max_x", pm::tools::json{{"type", "number"}}},
+                          {"max_y", pm::tools::json{{"type", "number"}}},
+                          {"max_z", pm::tools::json{{"type", "number"}}}}},
+                        {"required", {"primitive"}}},
+        [](const pm::tools::json& a) -> ToolResult {
+            const std::string prim = a.at("primitive").get<std::string>();
+            const std::uint32_t count = a.contains("count") ? a["count"].get<std::uint32_t>() : 10u;
+            if (count > 500) {
+                return ToolResult::failure("scatter_count_exceeded", "count must be <= 500 (D-031)");
+            }
+            pm::geom::IndexedMesh base;
+            if (prim == "box") {
+                pm::geom::generators::BoxOptions opt;
+                if (a.contains("size") && a["size"].is_array() && a["size"].size() == 3) {
+                    opt.size = pm::core::Vec3(a["size"][0].get<float>(), a["size"][1].get<float>(),
+                                              a["size"][2].get<float>());
+                }
+                base = pm::geom::generators::box(opt);
+            } else if (prim == "sphere") {
+                pm::geom::generators::SphereOptions opt;
+                if (a.contains("radius")) {
+                    opt.radius = a["radius"].get<float>();
+                }
+                base = pm::geom::generators::sphere(opt);
+            } else {
+                return ToolResult::failure("invalid_primitive", "primitive must be box/sphere");
+            }
+            // 预算前置校验。
+            const std::int64_t per_copy = static_cast<std::int64_t>(base.triangle_count());
+            if (!pm::tools::triangle_budget().can_accept(per_copy * count)) {
+                return ToolResult::failure(
+                    "budget_exceeded",
+                    "scatter would exceed triangle budget: " + std::to_string(per_copy * count) +
+                        " triangles");
+            }
+            pm::geom::ScatterOptions opt;
+            opt.count = count;
+            opt.seed = a.contains("seed") ? a["seed"].get<std::uint32_t>() : 42u;
+            if (a.contains("min_x")) { opt.min.x = a["min_x"].get<float>(); }
+            if (a.contains("min_y")) { opt.min.y = a["min_y"].get<float>(); }
+            if (a.contains("min_z")) { opt.min.z = a["min_z"].get<float>(); }
+            if (a.contains("max_x")) { opt.max.x = a["max_x"].get<float>(); }
+            if (a.contains("max_y")) { opt.max.y = a["max_y"].get<float>(); }
+            if (a.contains("max_z")) { opt.max.z = a["max_z"].get<float>(); }
+            const pm::geom::IndexedMesh scat = pm::geom::scatter(base, opt);
+            const pm::geom::MeshQuality q = scat.validate();
+            if (!q.ok || q.has_error()) {
+                return ToolResult::failure("scatter_result_invalid", q.summary());
+            }
+            const pm::geom::MeshStats s = scat.stats();
+            const pm::core::Aabb b = scat.bounds();
+            pm::tools::json data = {
+                {"vertex_count", scat.vertex_count()},
+                {"triangle_count", scat.triangle_count()},
+                {"bounds",
+                 {{"min", {b.min.x, b.min.y, b.min.z}},
+                  {"max", {b.max.x, b.max.y, b.max.z}}}},
+                {"signed_volume", s.signed_volume},
+                {"watertight", q.watertight},
+                {"seed", opt.seed},  // 同 seed 可复现（D-027）
+                {"group", prim + "_array"},
+            };
+            return pm::tools::ToolResult::success(std::move(data));
         },
         error);
     (void)error;
