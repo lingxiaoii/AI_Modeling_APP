@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-M4 批量工具卡：M4-01 预算 ✅、M4-02 solidify ✅、M4-03 subdivide ✅、M4-04/05 array+scatter ✅ 已闭环（CI 双 job 全绿）→ 下一卡 M4-06/07/08 lathe/loft/sweep 生成工具（D-028）
+M4 批量工具卡：M4-01~05 ✅、M4-06/07/08 lathe/loft/sweep ✅ 已闭环（CI 双 job 全绿 42dfe99）→ 下一卡 M4-09 template_apply 模板 + M4-10 生成器族
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -167,3 +167,4 @@ D-066（M4-01 三角预算保护，commit d1c3bab）：triangle_budget.h/.cpp �
 D-067（M4-02 solidify 薄壳，commit ad6addd）：deform_ops.h/.cpp 纯数学 solidify——薄面复制+翻转+边界桥接为板（cap_open），封闭体气球化（整体外扩，真抽壳不做 D-029）；面积加权顶点法线偏移，变形后 compute_normals 重算（D-027）；边界边用 64 位无向边键统计（count==1）。model_solidify 工具注册（primitive=box/sphere/plane + offset，场景层落地前图元参数化；返回 vertex/triangle/bounds/volume/watertight；失败可读错误）。测试 6 用例（plane→水密 8v/12t、sphere 气球化 AABB 外扩、非法参数空、manifold+正体积、工具注册+预算记账 12t、非法 primitive）。**已知待强化**：侧壁桥接绕序未统一（可能局部内翻），M4-12 校验器集成卡严格化朝向。
 D-068（M4-03 subdivide 细分，commit 7aa6af6）：deform_ops.cpp 追加 subdivide——每三角形 1-4 剖分（连接边中点），共享边中点缓存（64 位无向边键，防裂缝）；levels 钳制 [0,3]（D-031 性能保护）；levels=0 返回副本；每级 compute_normals 重算。model_subdivide 工具注册（primitive + levels，图元参数化；返回统计）。测试 4 用例（plane 2→8 三角 + 9 顶点共享中点、box levels=3 → 12*64 三角 + 水密保持 + levels>3 钳制、levels=0 副本 + 空输入、工具注册 + 预算记账 8t）。
 D-069（M4-04/05 repeat 阵列 + scatter 散布，commit d1bccc6）：array_ops.h/.cpp——repeat（线性阵列，count 副本沿 step 平移，count 钳制 ≤500 D-031）；scatter（xorshift32 种子化——同 seed 逐顶点可复现 D-027，count 钳制 ≤500，范围盒 [min,max] 均匀，无效范围退化）。model_array + model_scatter 工具注册（primitive + count/step 或 seed/范围；**预算前置校验**——执行前 can_accept(per_copy*count) 超限拒绝 M4 验收 d；自动成组 group=prim+"_array" D-030）。register_array_tools 加入 registry_global（tools/list 可见）。测试 6 用例（repeat 3×12=36 + AABB 跨度 3、repeat count 钳制 500/0 退化/空输入、scatter 同 seed 同结果 + 异 seed 不同、scatter count 钳制 500 + AABB 盒内 + 无效范围退化、工具注册 + 预算 36+60 + count>500 前置拒绝、非法 primitive）。
+D-070（M4-06/07/08 lathe/loft/sweep，commit 42dfe99）：sweeps.h/.cpp 三个生成器——lathe（轮廓 x=半径绕 Y 轴，segments 分段，cap_top/bottom 自动加盖；测试：加盖圆柱水密 26v/48t、无盖开放管）；loft（截面顶点数必须一致否则空 → 工具层 loft_section_count_mismatch 可读错误 D-028；测试：双正方形截面加盖水密 24t、不一致空）；sweep（平行传输标架 cross(up,tangent) 重算 up，profile 逆时针外法线 D-028；测试：直线路径方管 8v/8t + AABB 2 长 + 法线重算 + 无效输入空）。model_lathe/model_loft/model_sweep 工具注册（profile/sections/path 点数组参数化），register_sweep_tools 入 registry_global。**修复轮**：tool_registry.cpp 缺 geom/sweeps.h include（LatheOptions 等未声明，CI 实证）→ 补 include 双 job 全绿。
