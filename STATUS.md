@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-M3a-02 参考物叠加 + view_compare：已闭环（CI 双 job 全绿 e12609e）；M3 里程碑全部结算完成（见 M3 总结段）→ 下一项 M4（先读磁盘存档任务卡 D-026~D-042 输出卡号+标题清单确认）
+M4 批量工具卡：M4-01 三角预算保护已闭环（CI 双 job 全绿 d1c3bab）；M4 卡清单已固化（见下方 M4 存档清单）→ 下一卡 M4-02 变形工具 solidify
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -163,3 +163,4 @@ D-062（T-02 产出登记，commit 44abeb6）：连接信息页 + 工具列表�
 D-063（T-03 诊断部分产出，commit aac90ac）：主页「诊断」按钮 → Diagnostics.build() 纯文本报告（服务状态/surface_valid/工程目录/工具执行次数/引擎版本 packageManager/Android 版本/设备型号；渲染后端如实标注"未接入 PM_WITH_RENDER=OFF"而非伪造）→ ACTION_SEND 分享面板（可复制）；报告不含凭据（token 绝不出现）。ViewportActivity surfaceCreated 后 300ms 查 surface_valid，false 时叠红字失败原因 + 指引「诊断」入口（替代黑屏；渲染修复禁止盲修，待诊断报告）。
 D-064（T-04 代码部分产出，commit 9d45499）：视口最小编辑集 UI + 壳层编辑状态。EditorScene.kt：物体列表（type/params/position/rotation/scale）+ 选中 + undo 快照栈（上限 50 FIFO）+ JSON 序列化/恢复；UI 层零几何逻辑（只改参数）。ViewportActivity：顶栏（主页|物体 Spinner|保存）+ 底部工具条（立方体/球/圆柱/移动/旋转/缩放/删除/撤销）+ 选中后 x/y/z 三滑杆（步进 移动 0.05/旋转 5°/缩放 0.1）；添加图元前经 nativeGetMcpInfo tools 列表同源校验工具名；失败 toast 可读错误；保存写 project.json（壳层 EditorScene JSON）。约束记录：引擎 SceneGraph 未落地（D-024），场景写入待接线，本卡只做代码部分；流程全通验收（创建→加图元→变换→保存→杀进程重开→MCP 互通）待 M 系列场景层。
 D-065（M3a-02 产出，commit e12609e）：参考物叠加 + view_compare（M3 收尾卡）。reference_objects.h/.cpp：1m 网格（XZ 平面 Y=0，单位间距恰 1m，±half 逐米；line_count 钳制 half<1→1）+ 1.7m 人形（头圆 16 段 + 躯干 + 腿 + 臂，脚底 Y=0 头顶 Y=1.7，总高 kHumanoidHeight=1.7）；纯数学生成仅注入截图管线（D-019 铁律 8 不进场景/序列化/校验）。view_compare.h/.cpp：MCP 工具（view_ 前缀，D-013），输入 left/right/output 路径，OFF 桩返回 render_support_disabled（D-006），ON 分支真实差异+并排拼图待渲染接入；注册进 registry_global（tools/list 自动可见）。测试：reference_objects_test（网格线数/间距 1m/人形总高 1.7m/头顶 1.7/钳制）+ view_compare_test（注册/缺参/桩错误/空路径）+ capture_views_test 已有相机数学断言。**修复轮**：view_compare.h 缺 tool_registry.h include（头文件自给自足违反，CI 实证）→ 补 include 后双 job 全绿。M3 里程碑结算：M3a（四视图+缩略图+回放）、M3b（组装/assert 登记）、M3c（batch/plan/snapshot）、M3d（装配/镜像）、M3-G（验证闭环）、M3-A（APK 发布）、M3a-02（参考物+view_compare）全部闭环。
+D-066（M4-01 三角预算保护，commit d1c3bab）：triangle_budget.h/.cpp 进程级单例（kTriangleBudgetLimit=200,000；can_accept/commit/reset/used/remaining）；ToolRegistry.call 集成——success 且 data 含 triangle_count 时记账，超限返回 budget_exceeded 可读错误且不记账；failure 结果不记账。测试 5 用例（accept/commit/reset、超限拒绝、call 集成记账、call 超限拒绝、failure 不记账）。M4 卡清单固化（磁盘无独立卡文件，按 D-026~D-042 决策推导）：M4-01 三角预算（✅ d1c3bab）、M4-02 solidify 薄壳（D-029）、M4-03 subdivide 细分（D-031）、M4-04 repeat 阵列（D-030）、M4-05 scatter 散布（D-027/030）、M4-06 lathe 旋转体（D-028）、M4-07 loft 放样（D-028）、M4-08 sweep 扫掠（D-028）、M4-09 template_apply 模板（D-029）、M4-10 生成器族 树/石/房/栅栏/家具/角色（D-026）、M4-11 法线重算（D-027）、M4-12 校验器集成（M4 验收 c）。
