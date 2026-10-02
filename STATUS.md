@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-T-04 代码部分：已闭环（CI 双 job 全绿 9d45499，视口编辑器 UI + EditorScene undo 栈）；场景写入待 SceneGraph 接线（D-024，记入账本）→ 下一卡 M3a-02（参考物叠加 + view_compare，M3 收尾卡）
+M3a-02 参考物叠加 + view_compare：已闭环（CI 双 job 全绿 e12609e）；M3 里程碑全部结算完成（见 M3 总结段）→ 下一项 M4（先读磁盘存档任务卡 D-026~D-042 输出卡号+标题清单确认）
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -162,3 +162,4 @@ D-061（T-01 三轮修复闭环）：b17e2a4（四功能首交付）→ 78eb396�
 D-062（T-02 产出登记，commit 44abeb6）：连接信息页 + 工具列表页。架构决策：(1) 进程级 ToolRegistry 单例 registry()（首次注册内置 6 工具 + model_assert；asserts 必须静态否则 model_assert 工具 fn 悬垂 UB——register_assert_tools 捕获 asserts 引用）；(2) McpInfo 单例 {token, port=8642, host}，token 由壳层 McpTokenStore（SecureRandom 32B hex + SharedPreferences）生成持久化，经 JNI nativeGetMcpInfo(shellToken) 注入（幂等，非空保留首值）；token 只在本地 UI 直读不经网络；(3) JNI 保持 ≤10（原 9 + nativeGetMcpInfo = 10，不超宪法；曾误替换 nativeGetStatus 已恢复）；(4) http_server.h 默认端口 8765→8642（卡约定）；(5) ConnectionActivity 实时枚举本机 IPv4（WiFi 优先 + 网卡兜底，飞行模式显示可读提示）+ 复制按钮；ToolsActivity 显示 tool_count + 列表（同源禁硬编码）。测试 6 用例。
 D-063（T-03 诊断部分产出，commit aac90ac）：主页「诊断」按钮 → Diagnostics.build() 纯文本报告（服务状态/surface_valid/工程目录/工具执行次数/引擎版本 packageManager/Android 版本/设备型号；渲染后端如实标注"未接入 PM_WITH_RENDER=OFF"而非伪造）→ ACTION_SEND 分享面板（可复制）；报告不含凭据（token 绝不出现）。ViewportActivity surfaceCreated 后 300ms 查 surface_valid，false 时叠红字失败原因 + 指引「诊断」入口（替代黑屏；渲染修复禁止盲修，待诊断报告）。
 D-064（T-04 代码部分产出，commit 9d45499）：视口最小编辑集 UI + 壳层编辑状态。EditorScene.kt：物体列表（type/params/position/rotation/scale）+ 选中 + undo 快照栈（上限 50 FIFO）+ JSON 序列化/恢复；UI 层零几何逻辑（只改参数）。ViewportActivity：顶栏（主页|物体 Spinner|保存）+ 底部工具条（立方体/球/圆柱/移动/旋转/缩放/删除/撤销）+ 选中后 x/y/z 三滑杆（步进 移动 0.05/旋转 5°/缩放 0.1）；添加图元前经 nativeGetMcpInfo tools 列表同源校验工具名；失败 toast 可读错误；保存写 project.json（壳层 EditorScene JSON）。约束记录：引擎 SceneGraph 未落地（D-024），场景写入待接线，本卡只做代码部分；流程全通验收（创建→加图元→变换→保存→杀进程重开→MCP 互通）待 M 系列场景层。
+D-065（M3a-02 产出，commit e12609e）：参考物叠加 + view_compare（M3 收尾卡）。reference_objects.h/.cpp：1m 网格（XZ 平面 Y=0，单位间距恰 1m，±half 逐米；line_count 钳制 half<1→1）+ 1.7m 人形（头圆 16 段 + 躯干 + 腿 + 臂，脚底 Y=0 头顶 Y=1.7，总高 kHumanoidHeight=1.7）；纯数学生成仅注入截图管线（D-019 铁律 8 不进场景/序列化/校验）。view_compare.h/.cpp：MCP 工具（view_ 前缀，D-013），输入 left/right/output 路径，OFF 桩返回 render_support_disabled（D-006），ON 分支真实差异+并排拼图待渲染接入；注册进 registry_global（tools/list 自动可见）。测试：reference_objects_test（网格线数/间距 1m/人形总高 1.7m/头顶 1.7/钳制）+ view_compare_test（注册/缺参/桩错误/空路径）+ capture_views_test 已有相机数学断言。**修复轮**：view_compare.h 缺 tool_registry.h include（头文件自给自足违反，CI 实证）→ 补 include 后双 job 全绿。M3 里程碑结算：M3a（四视图+缩略图+回放）、M3b（组装/assert 登记）、M3c（batch/plan/snapshot）、M3d（装配/镜像）、M3-G（验证闭环）、M3-A（APK 发布）、M3a-02（参考物+view_compare）全部闭环。
