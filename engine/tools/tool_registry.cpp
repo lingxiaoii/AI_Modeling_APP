@@ -9,6 +9,7 @@
 #include "geom/generators.h"
 #include "geom/manifold_bridge.h"
 #include "geom/sweeps.h"
+#include "geom/templates.h"
 #include "scene/assert_registry.h"
 #include "tools/triangle_budget.h"
 
@@ -736,6 +737,58 @@ void register_sweep_tools(pm::tools::ToolRegistry& registry) {
                 {"bounds", {{"min", {b.min.x, b.min.y, b.min.z}}, {"max", {b.max.x, b.max.y, b.max.z}}}},
                 {"signed_volume", s.signed_volume},
                 {"watertight", q.watertight},
+            });
+        },
+        error);
+    (void)error;
+}
+
+// M4-09/M4-10：model_template 模板生成（树/石/房/栅栏/家具/角色，纯参数化零网络 D-029）。
+void register_template_tool(pm::tools::ToolRegistry& registry) {
+    std::string error;
+    registry.register_tool(
+        "model_template",
+        pm::tools::json{{"type", "object"},
+                        {"properties",
+                         {{"type", pm::tools::json{{"type", "string"}}},
+                          {"scale", pm::tools::json{{"type", "number"}}},
+                          {"seed", pm::tools::json{{"type", "integer"}}}}},
+                        {"required", {"type"}}},
+        [](const pm::tools::json& a) -> ToolResult {
+            const std::string type_name = a.at("type").get<std::string>();
+            pm::geom::TemplateType type;
+            if (!pm::geom::parse_template_type(type_name, type)) {
+                return pm::tools::ToolResult::failure(
+                    "invalid_template_type", "type must be tree/rock/house/fence/furniture/character");
+            }
+            pm::geom::TemplateOptions opt;
+            opt.type = type;
+            if (a.contains("scale")) { opt.scale = a["scale"].get<float>(); }
+            if (a.contains("seed")) { opt.seed = a["seed"].get<std::uint32_t>(); }
+            const pm::geom::IndexedMesh mesh = pm::geom::make_template(opt);
+            if (mesh.empty()) {
+                return pm::tools::ToolResult::failure("template_invalid_params", "scale must be > 0");
+            }
+            // 预算前置校验（M4 验收 d：模板类执行前先预算校验）。
+            if (!pm::tools::triangle_budget().can_accept(
+                    static_cast<std::int64_t>(mesh.triangle_count()))) {
+                return pm::tools::ToolResult::failure(
+                    "budget_exceeded",
+                    "template would exceed triangle budget");
+            }
+            const pm::geom::MeshQuality q = mesh.validate();
+            if (!q.ok || q.has_error()) {
+                return pm::tools::ToolResult::failure("template_result_invalid", q.summary());
+            }
+            const pm::geom::MeshStats s = mesh.stats();
+            const pm::core::Aabb b = mesh.bounds();
+            return pm::tools::ToolResult::success(pm::tools::json{
+                {"vertex_count", mesh.vertex_count()},
+                {"triangle_count", mesh.triangle_count()},
+                {"bounds", {{"min", {b.min.x, b.min.y, b.min.z}}, {"max", {b.max.x, b.max.y, b.max.z}}}},
+                {"signed_volume", s.signed_volume},
+                {"watertight", q.watertight},
+                {"group", type_name + "_template"},  // D-030 自动成组
             });
         },
         error);

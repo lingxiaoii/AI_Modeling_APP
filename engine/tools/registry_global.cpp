@@ -21,6 +21,7 @@ ToolRegistry& ensure_registry() {
         register_view_compare_tool(*r);
         register_array_tools(*r);
         register_sweep_tools(*r);
+        register_template_tool(*r);
         return r;
     }();
     return *s_registry;

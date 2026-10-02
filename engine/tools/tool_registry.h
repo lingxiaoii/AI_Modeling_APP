@@ -56,5 +56,7 @@ void register_assert_tools(ToolRegistry& registry, pm::scene::AssertRegistry& as
 void register_array_tools(ToolRegistry& registry);
 // M4-06/07/08：model_lathe / model_loft / model_sweep（旋转体/放样/扫掠，D-028）。
 void register_sweep_tools(ToolRegistry& registry);
+// M4-09/M4-10：model_template（树/石/房/栅栏/家具/角色，D-026/D-029 纯参数化组合体）。
+void register_template_tool(ToolRegistry& registry);
 
 }  // namespace pm::tools
