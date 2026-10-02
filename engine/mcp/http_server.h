@@ -16,7 +16,8 @@ namespace pm::mcp {
 
 struct HttpServerOptions {
     std::string host{"0.0.0.0"};
-    std::int32_t port{8765};
+    // T-02 卡约定端口（与 mcp_info.h kMcpPort 一致）。
+    std::int32_t port{8642};
     // 请求体上限（防止恶意超大 payload 拖垮解析）。
     std::size_t max_body_bytes{2 * 1024 * 1024};
 };

@@ -45,6 +45,14 @@ object NativeBridge {
     @JvmStatic
     external fun nativeGetStatus(): String
 
+    /**
+     * 连接信息 + 工具列表（T-02）：一次返回 JSON {token, port, host, tools, tool_count}。
+     * shellToken 非空且引擎侧未注入时写入（幂等）；空串仅查询。
+     * token 只在本地 UI 直读，不经网络；tools 来自 C++ ToolRegistry（与 MCP tools/list 同源）。
+     */
+    @JvmStatic
+    external fun nativeGetMcpInfo(shellToken: String): String
+
     /** 注册事件 upcall 目标：C++ 侧缓存对象，事件到达时回调其 onNativeEvent。 */
     @JvmStatic
     external fun nativeRegisterEventSink(sink: EventSinkBridge)

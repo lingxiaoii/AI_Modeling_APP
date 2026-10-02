@@ -7,6 +7,8 @@
     <string name="status_running">引擎运行中</string>
     <string name="open_viewport">打开视口</string>
     <string name="open_gallery">项目画廊</string>
+    <string name="open_connection">连接信息</string>
+    <string name="open_tools">工具列表</string>
     <string name="channel_name">Modeler 服务</string>
     <string name="notification_title">Pocket Modeler</string>
     <string name="notification_text">MCP 建模服务运行中</string>

@@ -71,10 +71,22 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { startActivity(Intent(this@MainActivity, GalleryActivity::class.java)) }
         }
 
+        val openConnection = Button(this).apply {
+            text = getString(R.string.open_connection)
+            setOnClickListener { startActivity(Intent(this@MainActivity, ConnectionActivity::class.java)) }
+        }
+
+        val openTools = Button(this).apply {
+            text = getString(R.string.open_tools)
+            setOnClickListener { startActivity(Intent(this@MainActivity, ToolsActivity::class.java)) }
+        }
+
         root.addView(statusText)
         root.addView(toggleButton)
         root.addView(openViewport)
         root.addView(openGallery)
+        root.addView(openConnection)
+        root.addView(openTools)
         setContentView(root)
     }
 

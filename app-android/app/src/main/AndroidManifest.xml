@@ -39,6 +39,16 @@
         <activity
             android:name=".GalleryActivity"
             android:exported="false" />
+
+        <!-- 连接信息页（T-02：IP/端口/token/复制） -->
+        <activity
+            android:name=".ConnectionActivity"
+            android:exported="false" />
+
+        <!-- 工具列表页（T-02：ToolRegistry 实数 + 列表） -->
+        <activity
+            android:name=".ToolsActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

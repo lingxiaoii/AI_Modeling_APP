@@ -1,4 +1,4 @@
-// JNI 薄桥（宪法铁律 2）：9 个 native 函数（≤10），全部直转 pm::platform::host()。
+// JNI 薄桥（宪法铁律 2）：10 个 native 函数（≤10），全部直转 pm::platform::host() / 引擎单例。
 // 本文件是 /app-android 的一部分，允许 JNI；/engine 本身零 JNI 依赖。
 // 线程模型：下行（Kotlin→C++）在 JNI 主线程；上行（事件）可能来自 MCP/下载线程，
 // 因此 emit_upcall 必须按当前线程 attach 获取 JNIEnv，禁止复用注册线程的 env。
@@ -12,8 +12,10 @@
 #include <cstring>
 #include <string>
 
+#include "mcp/mcp_info.h"
 #include "platform/modeler_host.h"
 #include "platform/platform_services.h"
+#include "tools/registry_global.h"
 
 namespace {
 
@@ -196,6 +198,33 @@ Java_com_pocketmodeler_app_NativeBridge_nativeSetProjectDir(JNIEnv* env, jclass,
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_pocketmodeler_app_NativeBridge_nativeGetStatus(JNIEnv* env, jclass) {
     return env->NewStringUTF(status_json().c_str());
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_pocketmodeler_app_NativeBridge_nativeGetMcpInfo(JNIEnv* env, jclass, jstring shell_token) {
+    // T-02：连接信息 + 工具列表一次返回（JNI 保持 ≤10）。
+    // shell_token 为空时仅查询；非空且引擎侧未注入时写入（幂等）。
+    // token 只在本地 UI 直读，不经网络；tools 来自 ToolRegistry（与 MCP tools/list 同源）。
+    const char* utf = shell_token != nullptr ? env->GetStringUTFChars(shell_token, nullptr) : nullptr;
+    std::string tok = utf != nullptr ? utf : "";
+    if (utf != nullptr) {
+        env->ReleaseStringUTFChars(shell_token, utf);
+    }
+    pm::mcp::set_mcp_token(tok);
+    const pm::mcp::McpInfo& info = pm::mcp::mcp_info();
+
+    // 工具列表：进程级注册表真源，禁硬编码。
+    nlohmann::json tools = nlohmann::json::array();
+    for (const std::string& name : pm::tools::registry().tool_names()) {
+        tools.push_back(name);
+    }
+    nlohmann::json out;
+    out["token"] = info.token;
+    out["port"] = info.port;
+    out["host"] = info.host;
+    out["tools"] = tools;
+    out["tool_count"] = tools.size();
+    return env->NewStringUTF(out.dump().c_str());
 }
 
 extern "C" JNIEXPORT void JNICALL
