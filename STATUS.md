@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-T-03 诊断按钮部分：已闭环（CI 双 job 全绿 aac90ac，主页「诊断」按钮生成报告分享 + 视口失败红字提示）；黑屏修复待诊断报告回传（禁止盲修，记入账本）→ 下一卡 T-04 代码部分（视口最小编辑集）
+T-04 代码部分：已闭环（CI 双 job 全绿 9d45499，视口编辑器 UI + EditorScene undo 栈）；场景写入待 SceneGraph 接线（D-024，记入账本）→ 下一卡 M3a-02（参考物叠加 + view_compare，M3 收尾卡）
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -161,3 +161,4 @@ D-060（A-03 发布产出）：tag v0.0.0.1 推送 + GitHub Release v0.0.0.1 创
 D-061（T-01 三轮修复闭环）：b17e2a4（四功能首交付）→ 78eb396（signingConfigs create("debug") 与 AGP 内置 debug 冲突，改 getByName 覆盖）→ 4150d8e（MainActivity Unresolved engineStatus：LocalBinder 加 getService() 标准绑定模式 + ModelerService 服务级 engineStatus()）→ 4573c81（GalleryActivity byteArrayOf Int/Byte 类型不匹配：67 字节 PNG 全显式 .toByte()）。engine-core + android-apk 双 job 全绿（4573c81）；Release v0.0.0.1 更新为新 APK（6,786,401 字节，覆盖安装不再要求先卸载）。push 经验：电信丢包高发时段 git push 单次必败，循环重试（间隔 8s）第 1 次即成功；artifact 下载超长时用单次 200s 窗口（能拿 2.3MB）+ 多次完整重试直至全量 5,415,447 字节（GitHub artifact 不支持 range 续传，curl -C - 会一直卡在中断点）。
 D-062（T-02 产出登记，commit 44abeb6）：连接信息页 + 工具列表页。架构决策：(1) 进程级 ToolRegistry 单例 registry()（首次注册内置 6 工具 + model_assert；asserts 必须静态否则 model_assert 工具 fn 悬垂 UB——register_assert_tools 捕获 asserts 引用）；(2) McpInfo 单例 {token, port=8642, host}，token 由壳层 McpTokenStore（SecureRandom 32B hex + SharedPreferences）生成持久化，经 JNI nativeGetMcpInfo(shellToken) 注入（幂等，非空保留首值）；token 只在本地 UI 直读不经网络；(3) JNI 保持 ≤10（原 9 + nativeGetMcpInfo = 10，不超宪法；曾误替换 nativeGetStatus 已恢复）；(4) http_server.h 默认端口 8765→8642（卡约定）；(5) ConnectionActivity 实时枚举本机 IPv4（WiFi 优先 + 网卡兜底，飞行模式显示可读提示）+ 复制按钮；ToolsActivity 显示 tool_count + 列表（同源禁硬编码）。测试 6 用例。
 D-063（T-03 诊断部分产出，commit aac90ac）：主页「诊断」按钮 → Diagnostics.build() 纯文本报告（服务状态/surface_valid/工程目录/工具执行次数/引擎版本 packageManager/Android 版本/设备型号；渲染后端如实标注"未接入 PM_WITH_RENDER=OFF"而非伪造）→ ACTION_SEND 分享面板（可复制）；报告不含凭据（token 绝不出现）。ViewportActivity surfaceCreated 后 300ms 查 surface_valid，false 时叠红字失败原因 + 指引「诊断」入口（替代黑屏；渲染修复禁止盲修，待诊断报告）。
+D-064（T-04 代码部分产出，commit 9d45499）：视口最小编辑集 UI + 壳层编辑状态。EditorScene.kt：物体列表（type/params/position/rotation/scale）+ 选中 + undo 快照栈（上限 50 FIFO）+ JSON 序列化/恢复；UI 层零几何逻辑（只改参数）。ViewportActivity：顶栏（主页|物体 Spinner|保存）+ 底部工具条（立方体/球/圆柱/移动/旋转/缩放/删除/撤销）+ 选中后 x/y/z 三滑杆（步进 移动 0.05/旋转 5°/缩放 0.1）；添加图元前经 nativeGetMcpInfo tools 列表同源校验工具名；失败 toast 可读错误；保存写 project.json（壳层 EditorScene JSON）。约束记录：引擎 SceneGraph 未落地（D-024），场景写入待接线，本卡只做代码部分；流程全通验收（创建→加图元→变换→保存→杀进程重开→MCP 互通）待 M 系列场景层。
