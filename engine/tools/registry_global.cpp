@@ -4,6 +4,7 @@
 
 #include "scene/assert_registry.h"
 #include "tools/tool_registry.h"
+#include "tools/view_compare.h"
 
 namespace pm::tools {
 namespace {
@@ -17,6 +18,7 @@ ToolRegistry& ensure_registry() {
         ToolRegistry* r = new ToolRegistry();
         register_builtin_tools(*r);
         register_assert_tools(*r, s_asserts);
+        register_view_compare_tool(*r);
         return r;
     }();
     return *s_registry;
