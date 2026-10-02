@@ -1,7 +1,7 @@
 # STATUS
 
 ## 当前任务
-M4 批量工具卡：M4-01~10 ✅ 已闭环（CI 双 job 全绿 503970a）→ 下一卡 M4-11 法线重算 + M4-12 校验器集成（M4 收尾）
+M4 批量工具卡全部闭环（M4-01~12 ✅，CI 双 job 全绿 d111b28）；M4 里程碑结算完成 → 下一阶段 M5（glTF 导入导出 + meshopt 简化，读存档卡 D-035~D-042 对齐后执行）
 
 ## 已完成（按序）
 - /STATUS.md 进度真相源建立 ◻
@@ -169,3 +169,4 @@ D-068（M4-03 subdivide 细分，commit 7aa6af6）：deform_ops.cpp 追加 subdi
 D-069（M4-04/05 repeat 阵列 + scatter 散布，commit d1bccc6）：array_ops.h/.cpp——repeat（线性阵列，count 副本沿 step 平移，count 钳制 ≤500 D-031）；scatter（xorshift32 种子化——同 seed 逐顶点可复现 D-027，count 钳制 ≤500，范围盒 [min,max] 均匀，无效范围退化）。model_array + model_scatter 工具注册（primitive + count/step 或 seed/范围；**预算前置校验**——执行前 can_accept(per_copy*count) 超限拒绝 M4 验收 d；自动成组 group=prim+"_array" D-030）。register_array_tools 加入 registry_global（tools/list 可见）。测试 6 用例（repeat 3×12=36 + AABB 跨度 3、repeat count 钳制 500/0 退化/空输入、scatter 同 seed 同结果 + 异 seed 不同、scatter count 钳制 500 + AABB 盒内 + 无效范围退化、工具注册 + 预算 36+60 + count>500 前置拒绝、非法 primitive）。
 D-070（M4-06/07/08 lathe/loft/sweep，commit 42dfe99）：sweeps.h/.cpp 三个生成器——lathe（轮廓 x=半径绕 Y 轴，segments 分段，cap_top/bottom 自动加盖；测试：加盖圆柱水密 26v/48t、无盖开放管）；loft（截面顶点数必须一致否则空 → 工具层 loft_section_count_mismatch 可读错误 D-028；测试：双正方形截面加盖水密 24t、不一致空）；sweep（平行传输标架 cross(up,tangent) 重算 up，profile 逆时针外法线 D-028；测试：直线路径方管 8v/8t + AABB 2 长 + 法线重算 + 无效输入空）。model_lathe/model_loft/model_sweep 工具注册（profile/sections/path 点数组参数化），register_sweep_tools 入 registry_global。**修复轮**：tool_registry.cpp 缺 geom/sweeps.h include（LatheOptions 等未声明，CI 实证）→ 补 include 双 job 全绿。
 D-071（M4-09/10 模板生成器，commit 503970a）：templates.h/.cpp——TemplateType 枚举（tree/rock/house/fence/furniture/character，稳定字符串契约）+ make_template（纯参数化零网络 D-029，图元组合 + 变换，seed 随机细节 D-027，scale 整体缩放）。tree=圆柱干+球冠（seed 定冠径）、rock=扁椭球、house=box 主体+box 平顶、fence=2 立柱+2 横梁、furniture=椅（座+4 腿）、character=头+躯干+2 腿。model_template 工具注册（type/scale/seed；预算前置校验 M4 验收 d；group=type+"_template" 自动成组 D-030）。测试 6 用例（全部类型非空 + AABB 合理 + 落地 min.y≥0 + 高≤3、类型名往返、seed 可复现 + 异 seed 不同、scale 线性缩放 AABB、非法参数空、工具注册 + 预算 + 非法类型）。
+D-072（M4-11/12 法线重算 + 校验器集成，commit d111b28，M4 收尾）：validator_tools.h/.cpp——model_recompute_normals（显式全量重算法线，面积加权顶点法线 D-027；box/sphere/plane/cylinder 全覆盖 has_normals=true）；model_validate（几何校验器集成 M4 验收 c：watertight + boundary_edges=0 + oriented（封闭体有向体积正）+ aabb_ok（非退化 + 尺寸<1000）+ validation_ok；plane 开放面合法 validation_ok=true）。register_validator_tools 入 registry_global。测试 4 用例（四图元法线重算、box/sphere/cylinder 水密+朝外+校验通过、plane 开放合法、非法 primitive）。**M4 里程碑结算**：M4-01 预算、M4-02 solidify、M4-03 subdivide、M4-04/05 array+scatter、M4-06/07/08 lathe/loft/sweep、M4-09/10 templates、M4-11 normals、M4-12 validator 全部闭环（12 卡，7 commit，双 job 全绿）。所有工具注册 ToolRegistry（tools/list 可见）；≥3 doctest/工具；seed 化可复现；预算保护 200k；校验器集成。
